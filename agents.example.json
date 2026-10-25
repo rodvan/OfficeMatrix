@@ -1,0 +1,65 @@
+{
+  "_ayuda": "Cada agente recibe un prompt corto que le pide leer .office/turno.md. {prompt} se reemplaza por ese texto. 'cmd' es el ejecutable; 'args' sus argumentos. 'stream' dice cómo leer su salida en vivo (claude | agy | codex | grok | kimi | text); con 'text' (o si quitas los flags de streaming) la app sigue funcionando, solo que sin burbuja detallada. Pon enabled:false para sacar a alguien de la oficina. turnTimeoutMinutes es el tope por turno; idleTimeoutMinutes corta una CLI que lleva ese tiempo sin emitir nada (colgada) y el ciclo sigue con el resto (0 lo desactiva). Este archivo es la plantilla del repositorio: la app la copia a agents.json (ignorado por git) la primera vez y desde entonces manda tu agents.json. Guía completa: docs/AGENTES.md.",
+  "agents": [
+    {
+      "id": "claude",
+      "name": "Claude",
+      "role": "Arquitecto",
+      "color": "#d0704f",
+      "enabled": true,
+      "cmd": "claude",
+      "stream": "claude",
+      "args": ["-p", "{prompt}", "--output-format", "stream-json", "--verbose", "--permission-mode", "acceptEdits", "--allowedTools", "Read,Write,Edit,Glob,Grep,Bash,WebSearch,WebFetch"]
+    },
+    {
+      "id": "gemini",
+      "name": "Gemini",
+      "role": "Investigador",
+      "color": "#4f8df5",
+      "enabled": false,
+      "cmd": "agy",
+      "stream": "agy",
+      "args": ["-p", "{prompt}", "--output-format", "stream-json", "--dangerously-skip-permissions", "--print-timeout", "45m"],
+      "models": ["gemini-4-argon-high", "gemini-3.8-flash-high", "gemini-3.8-flash-medium"],
+      "modelFlag": "--model",
+      "modelCooldownHours": 24,
+      "_nota": "Desactivado por defecto: los términos de Antigravity prohíben usar software de terceros con su acceso (sección 6). Actívalo solo si aceptas ese riesgo; ver docs/INSTALAR.md."
+    },
+    {
+      "id": "codex",
+      "name": "Codex",
+      "role": "Programador",
+      "color": "#10a37f",
+      "enabled": true,
+      "cmd": "codex",
+      "stream": "codex",
+      "args": ["exec", "--json", "--sandbox", "workspace-write", "--skip-git-repo-check", "{prompt}"]
+    },
+    {
+      "id": "grok",
+      "name": "Grok",
+      "role": "Auditor",
+      "color": "#c062d6",
+      "enabled": true,
+      "cmd": "grok",
+      "stream": "grok",
+      "args": ["-p", "{prompt}", "--output-format", "streaming-json", "--always-approve"]
+    },
+    {
+      "id": "kimi",
+      "name": "Kimi",
+      "role": "Programador",
+      "color": "#3b6cff",
+      "enabled": false,
+      "cmd": "kimi",
+      "stream": "kimi",
+      "args": ["-p", "{prompt}", "--output-format", "stream-json"],
+      "_nota": "Kimi Code CLI (Moonshot AI). Desactivado por defecto: actívalo después de instalarlo y de hacer 'kimi login' con tu membresía Kimi (Plus o superior). Con -p aprueba solo sus herramientas: no admite --yolo. Ver docs/AGENTES.md §3."
+    }
+  ],
+  "maxRounds": 3,
+  "autoMaxRounds": 6,
+  "minScore": 9,
+  "turnTimeoutMinutes": 45,
+  "idleTimeoutMinutes": 10
+}

@@ -1,0 +1,315 @@
+{
+  "version": 1,
+  "id": "acme-ciencia-editores",
+  "nombre": "Acme Ciencia · Redacción",
+  "estado": "activa",
+  "_nota": "Comentado en SIMULACIONES.md §9. Las claves que empiezan por _ son notas: el cargador las ignora.",
+
+  "marca": {
+    "nombre": "Acme Ciencia",
+    "idioma": "es",
+    "publico": "Hispanohablantes curiosos de ciencia y tecnología, 18-45 años (marca ficticia de ejemplo).",
+    "voz": "Asombro con rigor. Frases cortas. Un dato verificable por idea. Nada de clickbait que el texto no cumpla.",
+    "evitar": ["cifras sin fuente", "promesas de salud", "titulares en mayúsculas", "emojis en titulares", "LaTeX crudo: usar superíndices Unicode"],
+    "zona": "America/Mexico_City",
+    "sitio": "https://REEMPLAZAR.invalid"
+  },
+
+  "aislamiento": {
+    "nivel_requerido": "cuenta",
+    "lee_edificio": false,
+    "_niveles": "contexto = carpeta, memoria, entorno y hogares de CLI propios; solo misiones manuales. cuenta = además, un usuario local de Windows con ACL; necesario para rutinas y conectores. El nivel efectivo lo calcula el servidor."
+  },
+
+  "empleados": [
+    {
+      "id": "irene",
+      "nombre": "Irene Vidal",
+      "puesto": "Directora editorial",
+      "modelo": { "cli": "claude", "id": "opus" },
+      "modelo_rapido": null,
+      "degradable": false,
+      "_degradable": "Veta, así que no se degrada (SIMULACIONES.md §2.2): al 80 % sigue en Opus y, si su paso no cabe, espera.",
+      "reserva": { "cli": "codex", "id": null },
+      "objetivo": "Que cada pieza sea verdad, se entienda y suene a Acme Ciencia.",
+      "estilo": "Serena y exigente. Corta lo que sobra. Pregunta «¿y la fuente?» antes que «¿y el gancho?».",
+      "no_hace": ["publicar", "inventar cifras"],
+      "poderes": ["moderar", "aprobar_interno", "vetar"],
+      "activo": true,
+      "activo_en_copia_compartida": true,
+      "avatar": { "base": "lider", "vestuario": "gabardina-oficina" },
+      "voz": { "preferida": ["es-MX", "es-ES"], "velocidad": 1.0 }
+    },
+    {
+      "id": "tomas",
+      "nombre": "Tomás Ibarra",
+      "puesto": "Radar de temas",
+      "modelo": { "cli": "grok", "id": "grok-4.7" },
+      "modelo_rapido": { "cli": "grok", "id": "grok-4.7-build-fast" },
+      "degradable": true,
+      "reserva": { "cli": "claude", "id": "sonnet" },
+      "objetivo": "Traer cada mañana 5 temas con tracción real y una fuente primaria cada uno.",
+      "estilo": "Rápido y curioso. Propone lo atrevido y acepta perder si el dato no lo sostiene.",
+      "no_hace": ["citar una fuente que no abrió"],
+      "poderes": [],
+      "activo": true,
+      "activo_en_copia_compartida": true,
+      "avatar": { "base": "piloto", "vestuario": "chaqueta-trabajo" },
+      "voz": { "preferida": ["es-MX"], "velocidad": 1.1 }
+    },
+    {
+      "id": "lucia",
+      "nombre": "Lucía Andrade",
+      "puesto": "Redactora",
+      "modelo": { "cli": "agy", "id": "gemini-4-argon-medium" },
+      "modelo_rapido": { "cli": "agy", "id": "gemini-3.8-flash-medium" },
+      "degradable": true,
+      "reserva": { "cli": "claude", "id": "sonnet" },
+      "objetivo": "Que lo técnico se entienda con un ejemplo cotidiano en las tres primeras líneas.",
+      "estilo": "Clara y cercana. Ante una crítica, propone otra versión en vez de defenderse.",
+      "no_hace": ["verificar sus propios datos"],
+      "poderes": [],
+      "activo": true,
+      "activo_en_copia_compartida": false,
+      "_agy": "Antigravity: sin hogar documentado y con riesgo de términos (memoria-oficina/lecciones.md). Apagada en copias compartidas; en nivel contexto, solo si pasa R-CANARIO-CONTEXTO.",
+      "avatar": { "base": "capitana", "vestuario": "blazer-ribete" },
+      "voz": { "preferida": ["es-ES"], "velocidad": 1.0 }
+    },
+    {
+      "id": "kenji",
+      "nombre": "Kenji Morales",
+      "puesto": "Verificador de datos",
+      "modelo": { "cli": "codex", "id": null },
+      "modelo_rapido": null,
+      "degradable": false,
+      "reserva": { "cli": "claude", "id": "opus" },
+      "objetivo": "Cada cifra con enlace y cita exacta, o fuera.",
+      "estilo": "Metódico. Solo objeta con enlace y cita. No opina de estilo.",
+      "no_hace": ["reescribir el texto", "aceptar una fuente secundaria si existe la primaria"],
+      "poderes": ["vetar"],
+      "activo": true,
+      "activo_en_copia_compartida": true,
+      "_codex": "id null = el modelo de la cuenta (Codex no lista modelos). El turno registra el efectivo; el 23-oct-2026 fue gpt-6.1-sol.",
+      "avatar": { "base": "elegido", "vestuario": "rebeca-corbata" },
+      "voz": { "preferida": ["es-MX"], "velocidad": 0.95 }
+    },
+    {
+      "id": "sara",
+      "nombre": "Sara Quintero",
+      "puesto": "SEO y Search Console",
+      "modelo": { "cli": "claude", "id": "sonnet" },
+      "modelo_rapido": null,
+      "degradable": false,
+      "reserva": { "cli": "codex", "id": null },
+      "objetivo": "Encontrar cada semana 3 páginas que pueden ganar clics con un cambio pequeño.",
+      "estilo": "Habla con números de esta semana y la anterior. Nunca recomienda sin la consulta que lo respalda.",
+      "no_hace": ["prometer posiciones"],
+      "poderes": [],
+      "activo": true,
+      "activo_en_copia_compartida": true,
+      "avatar": { "base": "sara", "vestuario": "camisa-corbata" },
+      "voz": { "preferida": ["es-ES"], "velocidad": 1.0 }
+    },
+    {
+      "id": "nico",
+      "nombre": "Nico Ferrer",
+      "puesto": "Redes y anuncios",
+      "modelo": { "cli": "grok", "id": "grok-4.7-build-fast" },
+      "modelo_rapido": null,
+      "degradable": false,
+      "reserva": { "cli": "claude", "id": "sonnet" },
+      "objetivo": "Adaptar cada pieza a cada red y vigilar que los anuncios no gasten en lo que no convierte.",
+      "estilo": "Directo. Propone cambios de anuncio con el coste por resultado de antes y el esperado.",
+      "no_hace": ["proponer más de un cambio de anuncio a la vez"],
+      "poderes": [],
+      "activo": true,
+      "activo_en_copia_compartida": true,
+      "avatar": { "base": "nico", "vestuario": "sudadera-blazer" },
+      "voz": { "preferida": ["es-MX"], "velocidad": 1.1 }
+    },
+    {
+      "id": "taller",
+      "nombre": "Taller local",
+      "puesto": "Modelo local (fase S7)",
+      "modelo": { "cli": "codex-oss", "id": "REEMPLAZAR-modelo-ollama" },
+      "modelo_rapido": null,
+      "degradable": false,
+      "reserva": null,
+      "objetivo": "Clasificar y resumir sin gastar cupo.",
+      "estilo": "Breve.",
+      "no_hace": ["decidir nada"],
+      "poderes": [],
+      "activo": false,
+      "activo_en_copia_compartida": false,
+      "_ollama": "codex exec --oss --local-provider ollama -m <modelo>. Se enciende con un fixture real y una misión mínima.",
+      "avatar": { "base": "tomas", "vestuario": "chaqueta-trabajo" },
+      "voz": null
+    }
+  ],
+
+  "_rutinas": "«activa» es la configuración deseada. Lo que corre lo decide la máscara de SIMULACIONES.md §4.1: hasta que «Comprobar frontera» esté en verde, ninguna es efectiva; con los conectores apagados, las peticiones a blog, x, instagram y tiktok no entran en la bandeja.",
+  "rutinas": [
+    {
+      "id": "guardia",
+      "tipo": "guardia",
+      "cuando": "diario 08:30",
+      "condicion": { "fn": "hayBloqueos" },
+      "_deja": "una línea en control/sims/<id>/diario/<fecha>.jsonl",
+      "si_se_perdio": "omitir",
+      "activa": true
+    },
+    {
+      "id": "descarga-search-console",
+      "tipo": "conector",
+      "cuando": "lun 07:45",
+      "conector": "search_console",
+      "accion": "descargar_semana",
+      "si_se_perdio": "ejecutar_al_volver",
+      "vence_tras_horas": 96,
+      "activa": true
+    },
+    {
+      "id": "radar-temas",
+      "tipo": "equipo",
+      "cuando": "lun-vie 09:00",
+      "condicion": { "fn": "temasSinUsar", "menos_de": 10 },
+      "proceso": "taller",
+      "quien": ["tomas", "kenji"],
+      "pide": "5 temas con tracción en las últimas 48 h, cada uno con fuente primaria y por qué le importa a nuestro público",
+      "entregable": "cola/temas.md",
+      "si_se_perdio": "ejecutar_al_volver",
+      "vence_tras_horas": 8,
+      "tope_tokens": 600000,
+      "activa": true
+    },
+    {
+      "id": "articulo-blog",
+      "tipo": "equipo",
+      "cuando": "mar,jue 10:00",
+      "condicion": { "fn": "temaElegido" },
+      "proceso": "receta",
+      "pasos": [
+        { "modo": "torneo", "quien": ["tomas", "lucia", "irene"], "pide": "3 titulares y 3 entradillas para el tema marcado «elegido» en cola/temas.md" },
+        { "modo": "relevo", "etapas": [
+          ["lucia", "redactar 1 200-1 800 palabras con el titular ganador"],
+          ["kenji", "verificar cada dato con enlace y cita"],
+          ["sara", "título SEO, meta descripción y enlaces internos"],
+          ["irene", "editar y aprobar internamente"]
+        ] }
+      ],
+      "entregable": "entregas/{fecha}-articulo.md",
+      "solicita": [{ "conector": "blog", "accion": "crear_borrador", "nivel": "N1" }],
+      "si_se_perdio": "preguntar",
+      "vence_tras_horas": 48,
+      "tope_tokens": 2500000,
+      "activa": true
+    },
+    {
+      "id": "redes-del-dia",
+      "tipo": "equipo",
+      "cuando": "lun-vie 12:00",
+      "condicion": { "fn": "entregaSinAdaptar", "dias": 7 },
+      "proceso": "taller",
+      "quien": ["nico", "irene"],
+      "pide": "una versión para X, una para Instagram (carrusel de 6 láminas) y una para TikTok (guion de 30 s)",
+      "entregable": "entregas/{fecha}-redes.md",
+      "solicita": [
+        { "conector": "x", "accion": "publicar", "nivel": "N2" },
+        { "conector": "instagram", "accion": "publicar", "nivel": "N2" },
+        { "conector": "tiktok", "accion": "subir_borrador", "nivel": "N1" }
+      ],
+      "si_se_perdio": "omitir",
+      "vence_tras_horas": 6,
+      "tope_tokens": 500000,
+      "activa": true
+    },
+    {
+      "id": "informe-search-console",
+      "tipo": "equipo",
+      "cuando": "lun 08:00",
+      "condicion": { "fn": "datosNuevos", "conector": "search_console", "periodo": "semana" },
+      "proceso": "taller",
+      "quien": ["sara", "irene"],
+      "pide": "qué subió, qué bajó y 3 cambios pequeños con la consulta que los respalda",
+      "entregable": "informes/{fecha}-search-console.md",
+      "solicita": [],
+      "si_se_perdio": "ejecutar_al_volver",
+      "vence_tras_horas": 96,
+      "tope_tokens": 700000,
+      "activa": true
+    },
+    {
+      "id": "anuncios-revision",
+      "tipo": "conector",
+      "cuando": "diario 07:30",
+      "conector": "meta_ads",
+      "accion": "descargar_ayer",
+      "convoca_si": {
+        "condicion": { "fn": "desviacionGasto", "pct_gasto": 20, "pct_coste": 30 },
+        "proceso": "taller",
+        "quien": ["nico", "irene"],
+        "pide": "explica la desviación y propone UN cambio con su efecto esperado",
+        "solicita": [{ "conector": "meta_ads", "accion": "cambiar_presupuesto", "nivel": "N3" }],
+        "tope_tokens": 400000
+      },
+      "entregable": "informes/{fecha}-anuncios.md",
+      "si_se_perdio": "ejecutar_al_volver",
+      "vence_tras_horas": 24,
+      "activa": false,
+      "_nota": "Apagada hasta S6. Cada día cuesta 0 tokens salvo que haya desviación."
+    },
+    {
+      "id": "retro",
+      "tipo": "equipo",
+      "cuando": "vie 17:00",
+      "proceso": "consejo",
+      "quien": "todos",
+      "presidente": "irene",
+      "pide": "qué salió bien, qué mal y qué cambiamos, con los números de la semana",
+      "entregable": "actas/{fecha}-retro.md",
+      "escribe_memoria": true,
+      "si_se_perdio": "preguntar",
+      "vence_tras_horas": 72,
+      "tope_tokens": 1500000,
+      "activa": true
+    }
+  ],
+
+  "presupuesto": {
+    "tokens_dia": 6000000,
+    "minutos_ia_dia": 120,
+    "turnos_dia": 40,
+    "turnos_uso_desconocido_max": 3,
+    "_reglas": "Fijas, no configurables (SIMULACIONES.md §4.4): se reserva antes de lanzar; al 80 % los degradables (Tomás, Lucía) pasan a su modelo rápido y se cancelan reuniones opcionales; al 100 % no se admite nada nuevo.",
+    "dinero": {
+      "moneda": "MXN",
+      "tope_cambio_anuncios_dia": 500,
+      "tope_mensual_anuncios": 15000,
+      "tope_api_dia_usd": 2
+    }
+  },
+
+  "conexiones": {
+    "search_console": { "activo": false, "propiedad": "sc-domain:REEMPLAZAR.invalid", "auth": "oauth_google_loopback_pkce", "alcances": ["https://www.googleapis.com/auth/webmasters.readonly"], "acciones": { "descargar_semana": "N0" } },
+    "blog": { "activo": false, "tipo": "wordpress", "url": "https://REEMPLAZAR.invalid", "auth": "application_password", "rol_remoto": "autor", "acciones": { "listar": "N0", "crear_borrador": "N1", "publicar": "N2" } },
+    "x": { "activo": false, "auth": "oauth2_usuario_pkce", "alcances": ["tweet.read", "tweet.write", "users.read"], "acciones": { "publicar": "N2" }, "_coste": "pago por uso; leer también cuesta, por eso no hay lectura autónoma" },
+    "instagram": { "activo": false, "auth": "meta", "acciones": { "metricas": "N0", "publicar": "N2" }, "_cupo": "se lee de GET /<IG_ID>/content_publishing_limit" },
+    "tiktok": { "activo": false, "auth": "oauth_tiktok", "alcances": ["video.upload"], "acciones": { "subir_borrador": "N1" } },
+    "meta_ads": { "activo": false, "cuenta": "act_REEMPLAZAR", "auth": "meta", "alcances": ["ads_read"], "acciones": { "descargar_ayer": "N0", "cambiar_presupuesto": "N3", "pausar": "N3" }, "_nota": "ads_management solo tras revisión de la app" },
+    "google_ads": { "activo": false, "cliente": "REEMPLAZAR", "auth": "oauth_google_loopback_pkce", "acciones": { "leer": "N0" }, "_nota": "solo lectura hasta S6; el developer token se retiró el 9-sep-2026" },
+    "telegram": { "activo": false, "hilo": "un topic de tu grupo privado", "acciones": {}, "_aprueba": "es un canal, no publica: aprueba lo que diga aprobaciones.telegram_permite (N1 y N2, nunca N3)" }
+  },
+
+  "aprobaciones": {
+    "caduca_horas": 24,
+    "n1_automatico": [],
+    "_n1_automatico": "Lista de conectores cuyos N1 no esperan tu clic. Vacía: ni los borradores de WordPress ni los de TikTok salen solos.",
+    "telegram_permite": ["N1", "N2"],
+    "n3_confirmar_importe": true
+  },
+
+  "escena": {
+    "plantilla": "redaccion-v1",
+    "puestos": { "irene": "escritorio-1", "tomas": "escritorio-2", "lucia": "escritorio-3", "kenji": "escritorio-4", "sara": "escritorio-5", "nico": "escritorio-6" }
+  }
+}

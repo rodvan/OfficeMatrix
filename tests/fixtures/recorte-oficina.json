@@ -1,0 +1,1065 @@
+{
+  "size": [
+    1536,
+    1024
+  ],
+  "border_exact_magenta": 0,
+  "sprites": [
+    {
+      "file": "irene-1.png",
+      "size": [
+        74,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "irene-2.png",
+      "size": [
+        87,
+        198
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "irene-3.png",
+      "size": [
+        88,
+        195
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "irene-4.png",
+      "size": [
+        77,
+        193
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "irene-5.png",
+      "size": [
+        113,
+        188
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "irene-6.png",
+      "size": [
+        77,
+        202
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "tomas-1.png",
+      "size": [
+        82,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "tomas-2.png",
+      "size": [
+        105,
+        204
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "tomas-3.png",
+      "size": [
+        103,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "tomas-4.png",
+      "size": [
+        85,
+        199
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "tomas-5.png",
+      "size": [
+        110,
+        185
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "tomas-6.png",
+      "size": [
+        85,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "lucia-1.png",
+      "size": [
+        91,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "lucia-2.png",
+      "size": [
+        91,
+        198
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "lucia-3.png",
+      "size": [
+        96,
+        199
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "lucia-4.png",
+      "size": [
+        83,
+        195
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "lucia-5.png",
+      "size": [
+        150,
+        184
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "lucia-6.png",
+      "size": [
+        90,
+        201
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "kenji-1.png",
+      "size": [
+        93,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "kenji-2.png",
+      "size": [
+        102,
+        195
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "kenji-3.png",
+      "size": [
+        105,
+        194
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "kenji-4.png",
+      "size": [
+        89,
+        192
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "kenji-5.png",
+      "size": [
+        124,
+        180
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "kenji-6.png",
+      "size": [
+        85,
+        196
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "sara-1.png",
+      "size": [
+        98,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "sara-2.png",
+      "size": [
+        106,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "sara-3.png",
+      "size": [
+        104,
+        198
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "sara-4.png",
+      "size": [
+        81,
+        196
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "sara-5.png",
+      "size": [
+        138,
+        187
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "sara-6.png",
+      "size": [
+        85,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "nico-1.png",
+      "size": [
+        84,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "nico-2.png",
+      "size": [
+        105,
+        198
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "nico-3.png",
+      "size": [
+        105,
+        196
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "nico-4.png",
+      "size": [
+        81,
+        193
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "nico-5.png",
+      "size": [
+        127,
+        181
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "nico-6.png",
+      "size": [
+        80,
+        196
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "irene-15.png",
+      "size": [
+        101,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "irene-16.png",
+      "size": [
+        106,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "irene-17.png",
+      "size": [
+        108,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "irene-18.png",
+      "size": [
+        103,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "irene-19.png",
+      "size": [
+        103,
+        201
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "irene-20.png",
+      "size": [
+        103,
+        196
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "irene-21.png",
+      "size": [
+        108,
+        199
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "irene-22.png",
+      "size": [
+        109,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "tomas-15.png",
+      "size": [
+        104,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "tomas-16.png",
+      "size": [
+        112,
+        199
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "tomas-17.png",
+      "size": [
+        114,
+        199
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "tomas-18.png",
+      "size": [
+        111,
+        199
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "tomas-19.png",
+      "size": [
+        109,
+        199
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "tomas-20.png",
+      "size": [
+        105,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "tomas-21.png",
+      "size": [
+        111,
+        199
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "tomas-22.png",
+      "size": [
+        115,
+        199
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "lucia-15.png",
+      "size": [
+        115,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "lucia-16.png",
+      "size": [
+        110,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "lucia-17.png",
+      "size": [
+        110,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "lucia-18.png",
+      "size": [
+        106,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "lucia-19.png",
+      "size": [
+        110,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "lucia-20.png",
+      "size": [
+        112,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "lucia-21.png",
+      "size": [
+        106,
+        207
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "lucia-22.png",
+      "size": [
+        112,
+        201
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "kenji-15.png",
+      "size": [
+        101,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "kenji-16.png",
+      "size": [
+        114,
+        199
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "kenji-17.png",
+      "size": [
+        110,
+        199
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "kenji-18.png",
+      "size": [
+        108,
+        199
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "kenji-19.png",
+      "size": [
+        107,
+        199
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "kenji-20.png",
+      "size": [
+        110,
+        199
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "kenji-21.png",
+      "size": [
+        119,
+        199
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "kenji-22.png",
+      "size": [
+        111,
+        199
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "sara-15.png",
+      "size": [
+        112,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "sara-16.png",
+      "size": [
+        113,
+        201
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "sara-17.png",
+      "size": [
+        112,
+        198
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "sara-18.png",
+      "size": [
+        111,
+        198
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "sara-19.png",
+      "size": [
+        106,
+        198
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "sara-20.png",
+      "size": [
+        114,
+        198
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "sara-21.png",
+      "size": [
+        115,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "sara-22.png",
+      "size": [
+        113,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "nico-15.png",
+      "size": [
+        94,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "nico-16.png",
+      "size": [
+        113,
+        201
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "nico-17.png",
+      "size": [
+        108,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "nico-18.png",
+      "size": [
+        110,
+        199
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "nico-19.png",
+      "size": [
+        109,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "nico-20.png",
+      "size": [
+        101,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "nico-21.png",
+      "size": [
+        108,
+        201
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "nico-22.png",
+      "size": [
+        104,
+        199
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "irene-23.png",
+      "size": [
+        101,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "irene-24.png",
+      "size": [
+        100,
+        199
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "irene-25.png",
+      "size": [
+        100,
+        201
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "irene-26.png",
+      "size": [
+        94,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "irene-27.png",
+      "size": [
+        92,
+        201
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "irene-28.png",
+      "size": [
+        95,
+        199
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "irene-29.png",
+      "size": [
+        94,
+        203
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "irene-30.png",
+      "size": [
+        110,
+        203
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "tomas-23.png",
+      "size": [
+        101,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "tomas-24.png",
+      "size": [
+        92,
+        201
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "tomas-25.png",
+      "size": [
+        104,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "tomas-26.png",
+      "size": [
+        94,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "tomas-27.png",
+      "size": [
+        96,
+        201
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "tomas-28.png",
+      "size": [
+        104,
+        201
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "tomas-29.png",
+      "size": [
+        93,
+        201
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "tomas-30.png",
+      "size": [
+        102,
+        201
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "lucia-23.png",
+      "size": [
+        108,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "lucia-24.png",
+      "size": [
+        105,
+        197
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "lucia-25.png",
+      "size": [
+        105,
+        201
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "lucia-26.png",
+      "size": [
+        107,
+        201
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "lucia-27.png",
+      "size": [
+        99,
+        203
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "lucia-28.png",
+      "size": [
+        97,
+        196
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "lucia-29.png",
+      "size": [
+        105,
+        201
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "lucia-30.png",
+      "size": [
+        112,
+        201
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "kenji-23.png",
+      "size": [
+        102,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "kenji-24.png",
+      "size": [
+        88,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "kenji-25.png",
+      "size": [
+        106,
+        201
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "kenji-26.png",
+      "size": [
+        94,
+        199
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "kenji-27.png",
+      "size": [
+        97,
+        201
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "kenji-28.png",
+      "size": [
+        104,
+        201
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "kenji-29.png",
+      "size": [
+        102,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "kenji-30.png",
+      "size": [
+        106,
+        201
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "sara-23.png",
+      "size": [
+        102,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "sara-24.png",
+      "size": [
+        101,
+        201
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "sara-25.png",
+      "size": [
+        100,
+        201
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "sara-26.png",
+      "size": [
+        101,
+        201
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "sara-27.png",
+      "size": [
+        91,
+        201
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "sara-28.png",
+      "size": [
+        105,
+        201
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "sara-29.png",
+      "size": [
+        102,
+        201
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "sara-30.png",
+      "size": [
+        107,
+        201
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "nico-23.png",
+      "size": [
+        99,
+        200
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "nico-24.png",
+      "size": [
+        89,
+        201
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "nico-25.png",
+      "size": [
+        99,
+        201
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "nico-26.png",
+      "size": [
+        97,
+        199
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "nico-27.png",
+      "size": [
+        91,
+        201
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "nico-28.png",
+      "size": [
+        98,
+        196
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "nico-29.png",
+      "size": [
+        96,
+        199
+      ],
+      "opaque_magenta": 0
+    },
+    {
+      "file": "nico-30.png",
+      "size": [
+        106,
+        200
+      ],
+      "opaque_magenta": 0
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+node_modules/
+
+# Datos del usuario: nunca se publican
+proyectos/
+oficinas/
+memoria/
+memoria-oficina/
+.office/
+.control/
+.subidas/
+.probe/
+.demo-editorial/
+.cuotas.json
+*.secreto.json
+bots-ajustes.json
+preferencias.json
+*.log
+logs/
+
+# Tu configuración de agentes (se crea sola a partir de agents.example.json)
+agents.json
+
+# Documentos internos de proceso de las misiones (no sirven a un usuario nuevo)
+MEMORIA.md
+HANDOFF.md
+docs/BRIEF*.md
+docs/ANALISIS*.md
+docs/DISCUSION.md
+docs/evidencia/
+docs/evidencia-instalacion.md
+docs/arte/
+docs/simulaciones/arte/
+docs/simulaciones/PROPUESTA-mejoras.md
+docs/simulaciones/S1F-PREPARACION.md
+docs/simulaciones/index.html
+
+# Accesos directos que crea el instalador
+iniciar-officematrix.cmd
+iniciar-officematrix.sh

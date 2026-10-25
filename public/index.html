@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OfficeMatrix · Command center</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%2307090d'/%3E%3Cpath d='M3 3h4v4H3zM9 3h4v4H9zM3 9h4v4H3z' fill='%233fd0ff'/%3E%3Cpath d='M9 9h4v4H9z' fill='%23ffb547'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/style.css">
+  <!-- Tema antes del primer pintado: lo elegido con ☀/☾ o, si no, el del sistema (D65). -->
+  <script>try { const t = localStorage.getItem('om-tema'); document.documentElement.dataset.tema = t || (matchMedia('(prefers-color-scheme: light)').matches ? 'claro' : 'oscuro'); } catch { document.documentElement.dataset.tema = 'oscuro'; }</script>
+  <!-- Idioma: el texto del HTML es el inglés (por defecto); public/i18n.js lo cambia según data-i18n. -->
+</head>
+<body>
+  <header class="topbar">
+    <!-- En pantallas estrechas las misiones y el log son cajones: estos botones los abren (ver «Responsive» en style.css). -->
+    <button type="button" class="notify-btn drawer-btn" id="missionsBtn" aria-controls="missions" aria-expanded="false" aria-label="Missions" data-i18n-aria-label="ui.missions">☰</button>
+    <div class="brand"><span class="logo"></span><span class="brand-name" translate="no">OFFICEMATRIX</span><small data-i18n="ui.brandTagline">multi-AI command center</small></div>
+    <div class="top-status" id="topStatus"></div>
+    <div class="top-right">
+      <button type="button" class="notify-btn" id="setupBtn" data-i18n="ui.setupBtn">GETTING STARTED</button>
+      <button type="button" class="notify-btn" id="viewBtn">🛸 <span class="lbl" data-i18n="nave.view.ship">SHIP</span></button>
+      <span class="seg lang-seg" id="langSeg" role="group" aria-label="Language" data-i18n-aria-label="lang.label" data-i18n-hover="lang.hover"><button type="button" data-lang="en" class="on" aria-pressed="true" translate="no">EN</button><button type="button" data-lang="es" aria-pressed="false" translate="no">ES</button></span>
+      <button type="button" class="notify-btn" id="themeBtn" aria-label="Switch light or dark theme" data-i18n-aria-label="ui.themeAria">☀</button>
+      <button type="button" class="notify-btn" id="notifyBtn">🔕 <span class="lbl" data-i18n="ui.notify.label">ALERTS</span></button>
+      <button type="button" class="notify-btn drawer-btn" id="intelBtn" aria-controls="intel" aria-expanded="false" data-i18n="ui.logBtn">📜 LOG</button>
+      <span class="link-state" id="linkState" data-hover="txt:Live connection to the server. «NO LINK» = the server window was closed or is restarting." data-i18n-hover="ui.linkHover" data-i18n="ui.link.on">● LINK</span>
+      <span class="clock" id="clock">--:--:--</span>
+    </div>
+  </header>
+
+  <div class="scrim" id="scrim" hidden></div>
+  <aside class="missions" id="missions">
+    <div class="office-bar" title="Each office is an isolated simulation: its missions, its brain and its team. Nothing crosses between offices." data-i18n-title="ui.officeBarTitle">
+      <span class="office-dot" id="officeDot"></span>
+      <select id="officeSel" class="field" aria-label="Office" data-i18n-aria-label="ui.office"></select>
+      <button type="button" id="officeCfgBtn" class="btn ghost small" title="Configure this office (team, agent keys)" data-i18n-title="ui.officeCfgTitle">⚙</button>
+      <button type="button" id="officeNewBtn" class="btn ghost small" title="New office" data-i18n-title="ui.officeNewTitle">＋</button>
+    </div>
+    <div class="office-desc muted" id="officeDesc"></div>
+    <button id="newChatBtn" class="btn primary wide" data-i18n="ui.newMission">＋ NEW MISSION</button>
+    <input id="chatFilter" class="field" placeholder="filter missions…" data-i18n-placeholder="ui.chatFilter" autocomplete="off">
+    <div class="label"><span data-i18n="ui.missionsLabel">Missions</span> <span id="chatCount" class="muted"></span></div>
+    <ul id="chatList" class="chat-list"></ul>
+  </aside>
+
+  <main class="ops">
+    <div class="deck" id="deck"><section class="stations" id="stations"></section></div>
+
+    <section class="telemetry" id="telemetry" hidden>
+      <div class="tm-cell" data-hover="tm:mode"><span class="k" data-i18n="ui.tm.mode">MODE</span><span class="v" id="tmMode">–</span></div>
+      <div class="tm-cell" id="tmPhaseCell" data-hover="tm:phase"><span class="k" data-i18n="ui.tm.phase">PHASE</span><span class="v" id="tmPhase">–</span></div>
+      <div class="tm-cell" data-hover="tm:round"><span class="k" data-i18n="ui.tm.round">ROUND</span><span class="v" id="tmRound">–</span></div>
+      <div class="tm-cell" data-hover="tm:turn"><span class="k" data-i18n="ui.tm.turn">TURN</span><span class="v" id="tmTurn">–</span></div>
+      <div class="tm-cell" data-hover="tm:streak"><span class="k" data-i18n="ui.tm.streak">APPROVALS</span><span class="v" id="tmStreak">–</span></div>
+      <div class="tm-cell" id="tmDoneCell" data-hover="tm:done"><span class="k" data-i18n="ui.tm.done">DONE</span><span class="v" id="tmDone">–</span></div>
+      <div class="tm-cell" data-hover="tm:obj"><span class="k" data-i18n="ui.tm.obj">OBJECTIONS</span><span class="v" id="tmObj">–</span></div>
+      <div class="tm-cell" data-hover="tm:start"><span class="k" data-i18n="ui.tm.start">START</span><span class="v" id="tmStart">–</span></div>
+      <div class="tm-cell" data-hover="tm:clock"><span class="k" data-i18n="ui.tm.clock">ELAPSED</span><span class="v" id="tmClock">–</span></div>
+      <div class="tm-bar"><div id="tmFill"></div></div>
+    </section>
+
+    <!-- Qué está pasando, en una frase: quién trabaja, quién espera y por qué, qué falta para terminar o qué se entregó. -->
+    <section class="situation" id="situation" aria-live="polite"></section>
+
+    <section class="board">
+      <header class="board-head">
+        <div class="title-block"><h1 id="chatTitle" data-i18n="ui.newMissionTitle">New mission</h1><div class="chat-meta" id="chatMeta"></div></div>
+        <nav class="tabs" id="mainTabs">
+          <button data-tab="editorial" data-i18n="ui.tab.editorial">PROPOSALS</button>
+          <button data-tab="reports" class="on" data-i18n="ui.tab.reports">REPORTS</button>
+          <button data-tab="debate"><span data-i18n="ui.tab.debate">DISCUSSION</span> <b id="debateCount"></b></button>
+          <button data-tab="handoff" data-i18n="ui.tab.handoff">HANDOFF</button>
+          <button data-tab="charts" data-i18n="ui.tab.charts">CHARTS</button>
+          <button data-tab="agents" data-i18n="ui.tab.agents">DOSSIERS</button>
+        </nav>
+        <span class="head-actions">
+          <button id="deliverBtn" class="btn small" hidden data-hover="txt:Opens the viewer with the mission's main deliverable (rendered HTML, Markdown with images, PDF, images…)" data-i18n-hover="ui.deliverHover" data-i18n="ui.deliverBtn">👁 VIEW DELIVERABLE</button>
+          <button id="exportBtn" class="btn ghost small" hidden data-hover="txt:EXPORT: download the full mission record in Markdown (requests, reports, discussion and stats)" data-i18n-hover="ui.exportHover">⬇</button>
+          <button id="openFolderBtn" class="btn ghost small" hidden data-hover="txt:FOLDER: open the project folder in your file manager" data-i18n-hover="ui.folderHover">📂</button>
+        </span>
+      </header>
+      <div class="tab-body" id="tab-reports"></div>
+      <div class="tab-body" id="tab-editorial" hidden></div>
+      <div class="tab-body" id="tab-debate" hidden></div>
+      <div class="tab-body" id="tab-handoff" hidden></div>
+      <div class="tab-body" id="tab-charts" hidden></div>
+      <div class="tab-body" id="tab-agents" hidden></div>
+    </section>
+
+    <form id="composer" class="composer">
+      <div class="tpl-strip" id="tplStrip" hidden>
+        <span class="tpl-k" data-i18n="ui.template">TEMPLATE</span>
+        <div class="chips" id="tplChips"></div>
+        <span class="tpl-desc muted" id="tplDesc"></span>
+        <button type="button" class="btn ghost small" id="tplSaveBtn" title="Save the current guided request, cycle and team as your own template" data-i18n-title="ui.tplSaveTitle" data-i18n="ui.tplSaveBtn">★ SAVE AS TEMPLATE</button>
+        <button type="button" class="btn ghost small" id="tplDeleteBtn" hidden title="Delete this template of yours" data-i18n-title="ui.tplDeleteTitle" data-i18n="ui.tplDeleteBtn">✕ DELETE</button>
+      </div>
+      <div class="wf-strip" id="wfStrip">
+        <div class="wf-head"><span class="tpl-k" data-i18n="ui.workMode">WORK MODE</span><span class="muted" id="wfHint" data-i18n="ui.wfHint">how do the AIs split the work?</span></div>
+        <div class="wf-cards" id="wfCards" role="radiogroup" aria-label="Work mode" data-i18n-aria-label="ui.workModeAria"></div>
+        <div class="wf-explain" id="wfExplain"></div>
+      </div>
+      <div class="intent" id="intent"></div>
+      <textarea id="input" rows="2" placeholder="Describe the mission: what you want, for whom, in which format, what to avoid…  (in an open mission, sending it empty = another review pass)" data-i18n-placeholder="ui.inputPlaceholder"></textarea>
+      <details class="cycle-config" id="cycleConfig">
+        <summary><span data-i18n="ui.cycleConfig">⚙ CYCLE SETTINGS</span> <span id="cfgSummary" class="muted"></span></summary>
+        <div class="cfg-grid">
+          <fieldset class="cfg-mode" id="cfgModeSet">
+            <legend data-i18n="ui.whenItEnds">When it ends</legend>
+            <label><input type="radio" name="mode" value="rondas" checked> <span data-i18n="ui.modeRounds">Fixed rounds</span> <small data-i18n="ui.modeRoundsHint">ends when everyone approves in a row or when the rounds run out</small></label>
+            <label><input type="radio" name="mode" value="auto"> <span data-i18n="ui.modeAuto">Automatic</span> <small data-i18n="ui.modeAutoHint">the AIs decide when it is done (DONE: YES), with a safety cap</small></label>
+          </fieldset>
+          <fieldset class="cfg-nums">
+            <legend data-i18n="ui.limits">Limits</legend>
+            <label><span id="roundsLabel" data-i18n="ui.maxRounds">Max rounds</span> <input id="rounds" type="number" min="1" max="20" value="3" class="field num"></label>
+            <label><span data-i18n="ui.minScore">Minimum score</span> <input id="minScore" type="number" min="1" max="10" value="9" class="field num"></label>
+          </fieldset>
+          <fieldset class="cfg-par" id="cfgParSet" hidden>
+            <legend data-i18n="ui.parallel">Parallel work</legend>
+            <label><span data-i18n="ui.maxParallel">At once, max.</span> <input id="maxParallel" type="number" min="1" max="8" value="2" class="field num" title="How many AIs work at the same time. More = faster, but uses more memory and quota." data-i18n-title="ui.maxParallelTitle"></label>
+            <label id="chairLabel"><span data-i18n="ui.chair">Chair</span> <select id="chair" class="field"></select></label>
+            <small class="muted" data-i18n="ui.parallelHint">More AIs at once = faster, but more of your computer's memory and more subscription quota.</small>
+          </fieldset>
+          <fieldset class="cfg-team">
+            <legend data-i18n="ui.teamLegend">Team · turn order and roles</legend>
+            <ol id="teamList" class="team-list"></ol>
+          </fieldset>
+        </div>
+      </details>
+      <div class="attach-list" id="attachList" hidden></div>
+      <div class="composer-row">
+        <span class="hint muted" data-i18n="ui.composerHint">Ctrl+Enter sends · drop files here to attach them</span>
+        <label class="btn ghost attach-btn" title="Attach PDFs, images or documents: every agent reads them (they stay in the mission's adjuntos/ folder)" data-i18n-title="ui.attachTitle"><span data-i18n="ui.attach">📎 ATTACH</span><input type="file" id="fileInput" multiple hidden></label>
+        <label id="interveneLabel" class="toggle" hidden data-hover="txt:Checked: your text also goes into the Discussion thread as a User objection, and the cycle cannot close until an agent resolves it or you withdraw it. Unchecked: it is only a directive (they read it, but it does not block closing)." data-i18n-hover="ui.interveneHover"><input type="checkbox" id="interveneObj" checked> <span data-i18n="ui.intervene">+ objection in the thread</span></label>
+        <button type="button" id="stopBtn" class="btn danger" hidden data-i18n="ui.stop">■ STOP</button>
+        <button type="submit" id="sendBtn" class="btn primary" data-i18n="ui.send">DEPLOY ➜</button>
+      </div>
+    </form>
+  </main>
+
+  <aside class="intel" id="intel">
+    <nav class="tabs" id="sideTabs">
+      <button data-side="log" class="on" data-i18n="ui.side.log">LIVE LOG</button>
+      <button data-side="files" data-i18n="ui.side.files">FILES</button>
+      <button data-side="brain" data-i18n="ui.side.brain">BRAIN</button>
+    </nav>
+
+    <div class="side-body" id="side-log">
+      <div class="now" id="nowPanel" hidden></div>
+      <div class="log-filters">
+        <div class="chips" id="logAgents"></div>
+        <div class="log-row">
+          <select id="logKind" class="field">
+            <option value="all" data-i18n="ui.log.all">everything</option>
+            <option value="actions" data-i18n="ui.log.actions">actions</option>
+            <option value="write" data-i18n="ui.log.write">writes only</option>
+            <option value="cmd" data-i18n="ui.log.cmd">commands only</option>
+            <option value="error" data-i18n="ui.log.error">errors</option>
+            <option value="text" data-i18n="ui.log.text">messages</option>
+          </select>
+          <input id="logSearch" class="field" placeholder="search the log…" data-i18n-placeholder="ui.logSearch" autocomplete="off">
+          <label class="toggle" title="Follow the end of the log" data-i18n-title="ui.logFollowTitle"><input type="checkbox" id="logFollow" checked> <span data-i18n="ui.follow">follow</span></label>
+        </div>
+      </div>
+      <div class="log" id="log"><div class="muted pad" data-i18n="ui.noActivity">No activity yet.</div></div>
+    </div>
+
+    <div class="side-body" id="side-files" hidden>
+      <ul id="files" class="files"><li class="muted" data-i18n="ui.noProject">No project yet</li></ul>
+    </div>
+
+    <div class="side-body" id="side-brain" hidden>
+      <div class="brain-search">
+        <input id="brainQuery" class="field" placeholder="search the brain (office + projects)…" data-i18n-placeholder="ui.brainQuery" autocomplete="off">
+        <button id="newTopicBtn" class="btn small" title="Create a new topic" data-i18n-title="ui.newTopicTitle" data-i18n="ui.newTopic">＋ TOPIC</button>
+      </div>
+      <div id="brainResults" class="brain-results" hidden></div>
+      <div id="inbound" class="inbound" hidden></div>
+      <div class="label" data-i18n="ui.officeTopics">Office topics</div>
+      <ul id="memory" class="files memory"></ul>
+    </div>
+  </aside>
+
+  <!-- Visor de entregables: HTML en un iframe aislado, Markdown con imágenes, imágenes, PDF, código. Ver docs/DECISIONES.md D27. -->
+  <dialog id="viewer" class="viewer pv">
+    <header>
+      <span class="pv-title"><span class="pv-kind" id="pvKind"></span><span id="viewerTitle"></span><small id="pvStamp" class="muted"></small></span>
+      <span class="pv-tools">
+        <span class="seg" id="pvMode" role="tablist">
+          <button type="button" data-mode="render" class="on" data-hover="txt:How the reader will see it: rendered HTML with its styles and images, formatted Markdown, images and PDF" data-i18n-hover="ui.pv.renderHover" data-i18n="ui.pv.render">VIEW</button><button type="button" data-mode="code" data-hover="txt:The file's source text, with simple highlighting" data-i18n-hover="ui.pv.codeHover" data-i18n="ui.pv.code">CODE</button>
+        </span>
+        <label class="toggle" data-hover="txt:While the agents work, the viewer refreshes itself every time someone writes this file (or, if you check FOLLOW, jumps to the file they are writing)" data-i18n-hover="ui.pv.liveHover"><input type="checkbox" id="pvLive" checked> <span data-i18n="ui.pv.live">live</span></label>
+        <label class="toggle" data-hover="txt:Jump automatically to the file an agent is writing right now" data-i18n-hover="ui.pv.followHover"><input type="checkbox" id="pvFollow"> <span data-i18n="ui.follow">follow</span></label>
+        <button type="button" class="btn ghost small" id="pvReload" data-hover="txt:Reload now" data-i18n-hover="ui.pv.reload">↻</button>
+        <a class="btn ghost small" id="pvTab" target="_blank" rel="noopener noreferrer" data-hover="txt:Open in a new tab (still isolated: the project's HTML cannot use the app)" data-i18n-hover="ui.pv.tabHover" data-i18n="ui.pv.tab">⇱ TAB</a>
+        <button type="button" class="btn ghost small" id="pvFolder" data-hover="txt:Show this file in its folder" data-i18n-hover="ui.pv.folderHover">📂</button>
+        <button type="button" class="btn ghost small" data-close aria-label="Close" data-i18n-aria-label="ui.close">✕</button>
+      </span>
+    </header>
+    <div class="pv-main">
+      <nav class="pv-list" id="pvList" aria-label="Deliverables" data-i18n-aria-label="ui.pv.list"></nav>
+      <div class="pv-stage" id="pvStage"><pre id="viewerBody"></pre></div>
+    </div>
+    <footer class="pv-foot" id="pvFoot"></footer>
+  </dialog>
+
+  <div class="hover-tip" id="hoverTip" role="tooltip" hidden></div>
+
+  <dialog id="editor" class="viewer editor">
+    <header>
+      <span id="editorTitle"></span>
+      <span class="editor-tools">
+        <select id="editorHistory" class="field"></select>
+        <button class="btn small" id="editorRestore" hidden data-i18n="ui.ed.restore">RESTORE THIS VERSION</button>
+        <button class="btn ghost small" id="editorXfer" hidden data-hover="txt:Copy an entry of this topic to another office. It waits there in «incoming» until you accept it (zero inheritance)." data-i18n-hover="ui.ed.xferHover" data-i18n="ui.ed.xfer">↗ TRANSFER</button>
+        <button class="btn primary small" id="editorSave" data-i18n="ui.save">SAVE</button>
+        <button class="btn ghost small" data-close aria-label="Close" data-i18n-aria-label="ui.close">✕</button>
+      </span>
+    </header>
+    <input id="editorName" class="field" placeholder="topic-name.md" data-i18n-placeholder="ui.ed.name" hidden>
+    <textarea id="editorBody" spellcheck="false"></textarea>
+    <footer id="editorNote" class="muted" data-i18n="ui.ed.note">If a cycle writes to this topic while you edit, both changes are merged when you save (nothing is lost).</footer>
+  </dialog>
+
+  <dialog id="tplDialog" class="viewer tpl-dialog">
+    <header><span data-i18n="ui.tpl.title">★ SAVE AS YOUR OWN TEMPLATE</span><button type="button" class="btn ghost small" data-close aria-label="Close" data-i18n-aria-label="ui.close">✕</button></header>
+    <form id="tplForm" class="tpl-form">
+      <p class="muted" data-i18n="ui.tpl.intro">It saves what you have in the composer right now: the text as a guided request, the mode, the rounds, the minimum score and the team with its order and roles. If the name already exists, it is updated.</p>
+      <label><span data-i18n="ui.name">Name</span> <input id="tplName" class="field" maxlength="40" required placeholder="e.g. Weekly newsletter" data-i18n-placeholder="ui.tpl.namePh"></label>
+      <label><span data-i18n="ui.tpl.desc">What it is for</span> <input id="tplDescIn" class="field" maxlength="120" placeholder="one line shown when you pick it" data-i18n-placeholder="ui.tpl.descPh"></label>
+      <label><span data-i18n="ui.tpl.criteria">Quality criteria</span> <small class="muted" data-i18n="ui.tpl.criteriaHint">(one per line; the agents get them every turn)</small>
+        <textarea id="tplCriteria" class="field" rows="5" placeholder="The first line hooks on its own.&#10;Every fact has its source." data-i18n-placeholder="ui.tpl.criteriaPh"></textarea></label>
+      <label><span data-i18n="ui.tpl.output">Where the deliverable goes</span> <input id="tplOutput" class="field" maxlength="200" placeholder="e.g. contenido/newsletters/, one file per issue" data-i18n-placeholder="ui.tpl.outputPh"></label>
+      <div class="composer-row"><span class="hint muted" id="tplSummary"></span><button type="submit" class="btn primary" data-i18n="ui.tpl.save">SAVE TEMPLATE</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="officeDialog" class="viewer tpl-dialog">
+    <header><span id="officeDlgTitle" data-i18n="ui.of.newTitle">NEW OFFICE</span><button type="button" class="btn ghost small" data-close aria-label="Close" data-i18n-aria-label="ui.close">✕</button></header>
+    <form id="officeForm" class="tpl-form">
+      <button type="button" class="btn" id="officeEditorialBtn" data-i18n="ui.of.editorialBtn">⚙ EDITORIAL · RULE AND VIRALHUNT</button>
+      <p class="muted" data-i18n="ui.of.intro">An office is an isolated simulation: it has its own missions, its own brain (what it learns stays here) and its own team. It does not read the building's brain or other offices' brains.</p>
+      <label><span data-i18n="ui.name">Name</span> <input id="officeName" class="field" maxlength="60" required placeholder="e.g. Acme" data-i18n-placeholder="ui.of.namePh"></label>
+      <label><span data-i18n="ui.of.about">What it is about</span> <textarea id="officeDescIn" class="field" rows="2" maxlength="600" placeholder="Company, goal, what kind of work is done here" data-i18n-placeholder="ui.of.aboutPh"></textarea></label>
+      <fieldset class="office-team" id="officeTeamSet"><legend><span data-i18n="ui.of.team">AIs that can work here</span> <small class="muted" data-i18n="ui.of.teamHint">(the office's files only reach these; none checked = all)</small></legend>
+        <div id="officeTeam" class="office-team-list"></div></fieldset>
+      <section id="officeStaff" class="office-keys" hidden>
+        <div class="label"><span data-i18n="ui.of.staff">Employees</span> <small class="muted" data-i18n="ui.of.staffHint">— characters with their own profile and model; click to open their profile</small></div>
+        <ul id="officeStaffList" class="staff-list"></ul>
+        <div class="label"><span data-i18n="ui.of.logbook">Logbook</span> <small class="muted" data-i18n="ui.of.logbookHint">— model changes, backups and transfers (written by the server)</small></div>
+        <ul id="officeLog" class="office-log"></ul>
+      </section>
+      <label class="office-color"><span data-i18n="ui.color">Color</span> <input id="officeColor" type="color" value="#4fd1c5"></label>
+      <section id="officeKeys" class="office-keys" hidden>
+        <div class="label"><span data-i18n="ui.of.keys">Agent keys</span> <small class="muted" data-i18n="ui.of.keysHint">— so an external agent can create and follow missions ONLY in this office</small></div>
+        <ul id="officeKeyList" class="office-key-list"></ul>
+        <div class="office-key-new"><input id="officeKeyName" class="field" maxlength="40" placeholder="agent name, e.g. my-assistant" data-i18n-placeholder="ui.of.keyNamePh"><button type="button" id="officeKeyBtn" class="btn ghost small" data-i18n="ui.of.keyCreate">＋ CREATE KEY</button></div>
+        <div id="officeKeyShow" class="office-key-show" hidden></div>
+      </section>
+      <section id="officeBots" class="office-keys" hidden>
+        <div class="label"><span translate="no">Grok Bots</span> <small class="muted" data-i18n="ui.of.botsHint">— your Grok bots as employees of this office: they get their turn through their routine's webhook and reply to OfficeMatrix (docs/GROK-BOTS.md)</small></div>
+        <label class="bots-url"><span data-i18n="ui.of.tunnel">Public tunnel URL</span> <small class="muted" data-i18n="ui.of.tunnelHint">(Cloudflare → http://localhost:4323, the bots' door; shared by every office)</small>
+          <span class="office-key-new"><input id="botsUrl" class="field" placeholder="https://bots.yourdomain.com" data-i18n-placeholder="ui.of.tunnelPh" autocomplete="off"><button type="button" id="botsUrlBtn" class="btn ghost small" data-i18n="ui.save">SAVE</button></span></label>
+        <ul id="officeBotList" class="office-key-list"></ul>
+        <div class="bot-new">
+          <input id="botName" class="field" maxlength="40" placeholder="bot name, e.g. Radar" data-i18n-placeholder="ui.of.botNamePh" autocomplete="off">
+          <select id="botAvatar" class="field" title="Its character in the office" data-i18n-title="ui.of.botAvatarTitle">
+            <option value="lider" data-i18n="ui.avatar.lider">Leader</option><option value="elegido" data-i18n="ui.avatar.elegido">Chosen one</option><option value="piloto" data-i18n="ui.avatar.piloto">Pilot</option>
+            <option value="capitana" data-i18n="ui.avatar.capitana">Captain</option><option value="operador" data-i18n="ui.avatar.operador">Operator</option><option value="sabia" data-i18n="ui.avatar.sabia">Sage</option>
+          </select>
+          <input id="botColor" type="color" value="#c062d6" title="Color" data-i18n-title="ui.color">
+          <input id="botUrl" class="field" placeholder="its routine's webhook URL (https://…)" data-i18n-placeholder="ui.of.botUrlPh" autocomplete="off">
+          <input id="botKey" class="field" type="password" placeholder="webhook key (whsec_… or the routine's)" data-i18n-placeholder="ui.of.botKeyPh" autocomplete="new-password">
+          <button type="button" id="botAddBtn" class="btn ghost small" data-i18n="ui.of.botAdd">＋ ADD BOT</button>
+        </div>
+      </section>
+      <div class="composer-row"><span class="hint muted" id="officeHint"></span><button type="submit" class="btn primary" id="officeSave" data-i18n="ui.of.create">CREATE OFFICE</button></div>
+    </form>
+  </dialog>
+
+  <!-- Alta de una simulación en 3 pasos (marca → empleados → revisar). Ver docs/DECISIONES.md D31. -->
+  <dialog id="simWizard" class="viewer tpl-dialog wizard">
+    <header><span><span data-i18n="ui.wz.title">🏢 NEW SIMULATION</span> · <b id="wzStepName" data-i18n="ui.wz.stepName1">1/3 BRAND</b></span><button type="button" class="btn ghost small" data-close aria-label="Close" data-i18n-aria-label="ui.close">✕</button></header>
+    <form id="wzForm" class="tpl-form" novalidate>
+      <ol class="wz-steps" id="wzSteps"><li class="on" data-i18n="ui.wz.step1">1 · Brand</li><li data-i18n="ui.wz.step2">2 · Employees</li><li data-i18n="ui.wz.step3">3 · Review</li></ol>
+      <section class="wz-step" data-step="1">
+        <p class="muted" data-i18n-html="ui.wz.intro">A simulation is an isolated office: its missions, its brain and its employees. <b>Zero inheritance</b>: it does not read the building's brain or other offices'; whatever you want it to know, you transfer it yourself, entry by entry.</p>
+        <div class="wz-tpl"><button type="button" class="btn small" id="wzTplBtn" data-i18n="ui.wz.tplBtn">✦ «CONTENT NEWSROOM» TEMPLATE</button>
+          <button type="button" class="btn ghost small" id="wzPasteBtn" data-i18n="ui.wz.pasteBtn">{ } PASTE simulacion.json</button><span class="muted" id="wzTplHint"></span></div>
+        <textarea id="wzPaste" class="field" rows="5" hidden placeholder='{"nombre": "…", "marca": {…}, "empleados": [ … ]}'></textarea>
+        <label><span data-i18n="ui.wz.name">Office name</span> <input id="wzName" class="field" maxlength="60" required placeholder="e.g. Acme Science · Newsroom" data-i18n-placeholder="ui.wz.namePh"></label>
+        <label><span data-i18n="ui.of.about">What it is about</span> <textarea id="wzDesc" class="field" rows="2" maxlength="600"></textarea></label>
+        <div class="wz-grid">
+          <label><span data-i18n="ui.wz.brand">Brand</span> <input id="wzBrand" class="field" maxlength="80" placeholder="Acme Science" data-i18n-placeholder="ui.wz.brandPh"></label>
+          <label><span data-i18n="ui.wz.lang">Language</span> <input id="wzLang" class="field" maxlength="10" value="en"></label>
+          <label class="wide"><span data-i18n="ui.wz.audience">Audience</span> <input id="wzAudience" class="field" maxlength="300"></label>
+          <label class="wide"><span data-i18n="ui.wz.voice">Voice</span> <input id="wzVoice" class="field" maxlength="300" placeholder="Wonder with rigor. Short sentences." data-i18n-placeholder="ui.wz.voicePh"></label>
+          <label class="wide"><span data-i18n="ui.wz.avoid">Avoid</span> <small class="muted" data-i18n="ui.wz.avoidHint">(separate with ;)</small> <input id="wzAvoid" class="field" maxlength="400"></label>
+          <label><span data-i18n="ui.color">Color</span> <input id="wzColor" type="color" value="#4fd1c5"></label>
+        </div>
+      </section>
+      <section class="wz-step" data-step="2" hidden>
+        <p class="muted" data-i18n-html="ui.wz.staffIntro">Each employee is a character: fixed name, job and personality; their <b>model</b> (CLI + model) can change without touching their profile or memory. The <b>backup</b> works for them once if their CLI runs out of credit, hits a limit or loses its session.</p>
+        <div id="wzStaff" class="wz-staff"></div>
+        <button type="button" class="btn ghost small" id="wzAddEmp" data-i18n="ui.wz.addEmp">＋ EMPLOYEE</button>
+      </section>
+      <section class="wz-step" data-step="3" hidden>
+        <div id="wzReview" class="wz-review"></div>
+      </section>
+      <div class="composer-row"><span class="hint muted" id="wzHint"></span>
+        <button type="button" class="btn ghost" id="wzBack" hidden data-i18n="ui.wz.back">← BACK</button>
+        <button type="submit" class="btn primary" id="wzNext" data-i18n="ui.wz.next">NEXT →</button></div>
+    </form>
+  </dialog>
+
+  <!-- Ficha del empleado: clic en su estación o en su personaje. -->
+  <dialog id="empDialog" class="viewer tpl-dialog emp-dialog">
+    <header><span id="empTitle" data-i18n="ui.emp.title">PROFILE</span><button type="button" class="btn ghost small" data-close aria-label="Close" data-i18n-aria-label="ui.close">✕</button></header>
+    <form id="empForm" class="tpl-form">
+      <div class="emp-head" id="empHead"></div>
+      <div id="empFields"></div>
+      <div class="composer-row"><span class="hint muted" id="empHint"></span><button type="submit" class="btn primary" data-i18n="ui.emp.save">SAVE PROFILE</button></div>
+    </form>
+  </dialog>
+
+  <!-- Traspaso de una entrada del cerebro a otra oficina (copia que espera a que la aceptes allí). -->
+  <dialog id="xferDialog" class="viewer tpl-dialog">
+    <header><span id="xferTitle" data-i18n="ui.ed.xfer">↗ TRANSFER</span><button type="button" class="btn ghost small" data-close aria-label="Close" data-i18n-aria-label="ui.close">✕</button></header>
+    <div class="tpl-form">
+      <p class="muted" data-i18n-html="ui.xfer.intro">Zero inheritance: another office only knows what you transfer to it. The entry is copied to its <b>incoming</b> tray (outside its brain) and no employee sees it until, inside that office, you press <b>Accept</b>.</p>
+      <label><span data-i18n="ui.xfer.dest">Destination</span> <select id="xferDest" class="field"></select></label>
+      <ul id="xferList" class="xfer-list"></ul>
+    </div>
+  </dialog>
+
+  <div class="chart-tip" id="chartTip" hidden></div>
+  <dialog id="setupDialog" class="viewer tpl-dialog" aria-labelledby="setupTitle">
+    <header><span id="setupTitle" data-i18n="setup.title">Getting started</span><button type="button" class="btn ghost small" data-close aria-label="Close" data-i18n-aria-label="ui.close">✕</button></header>
+    <div class="tpl-form">
+      <section class="setup-settings" id="setupSettings">
+        <h3 data-i18n="settings.title">⚙ Settings</h3>
+        <label><span data-i18n="lang.label">Language</span> <select id="langSel" class="field" data-lang-select><option value="en" translate="no">English</option><option value="es" translate="no">Español</option></select></label>
+        <small class="muted" data-i18n="lang.settingsHint">The app, the server notices and the briefs for the agents use this language (a request written in another language keeps its own).</small>
+      </section>
+      <p data-i18n="setup.steps">1. Install a CLI. 2. Open another terminal and log in with your subscription. 3. Restart the server and press Refresh.</p>
+      <p data-i18n="setup.testNote">Test creates a one-turn mission in the building and uses some of your subscription quota. You will see the answer or the error in its record.</p>
+      <button type="button" id="setupRefresh" class="btn ghost small" data-i18n="setup.refresh">REFRESH</button>
+      <p id="setupStatus" role="status"></p><div id="setupAgents"></div>
+    </div>
+  </dialog>
+  <script src="/i18n.js"></script>
+  <script src="/primeros-pasos.js"></script>
+  <script src="/charts.js"></script>
+  <script src="/escenas.js"></script>
+  <script src="/nave.js"></script>
+  <script src="/editorial.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

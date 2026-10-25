@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 168" role="img" aria-labelledby="rondasTitle rondasDesc">
+  <title id="rondasTitle">One round of work</title>
+  <desc id="rondasDesc">A token travels from Draft to Review to Score to Deliver, then loops back for the next round.</desc>
+  <rect width="760" height="168" rx="18" fill="#12141c"/>
+  <text x="28" y="32" fill="#c8c4d4" font-family="Segoe UI, sans-serif" font-size="13" letter-spacing="0.08em">ONE ROUND, THEN THE NEXT</text>
+  <path id="ronda" d="M96 92 H664" fill="none" stroke="#3a3f52" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 10">
+    <animate attributeName="stroke-dashoffset" from="0" to="-36" dur="1.6s" repeatCount="indefinite"/>
+  </path>
+  <path d="M664 92 C706 92 706 132 664 132 H96 C54 132 54 92 96 92" fill="none" stroke="#2a2e3c" stroke-width="2" stroke-linecap="round"/>
+  <g font-family="Segoe UI, sans-serif" text-anchor="middle">
+    <g>
+      <circle cx="96" cy="92" r="22" fill="#1c1830" stroke="#7c5cff" stroke-width="2"/>
+      <text x="96" y="97" fill="#d7d0ff" font-size="13" font-weight="700">1</text>
+      <text x="96" y="132" fill="#eeeaf8" font-size="13">Draft</text>
+    </g>
+    <g>
+      <circle cx="284" cy="92" r="22" fill="#14202e" stroke="#4F8DF5" stroke-width="2"/>
+      <text x="284" y="97" fill="#d5e4ff" font-size="13" font-weight="700">2</text>
+      <text x="284" y="132" fill="#eeeaf8" font-size="13">Review</text>
+    </g>
+    <g>
+      <circle cx="472" cy="92" r="22" fill="#2a2214" stroke="#e0a84f" stroke-width="2"/>
+      <text x="472" y="97" fill="#ffe3b0" font-size="13" font-weight="700">3</text>
+      <text x="472" y="132" fill="#eeeaf8" font-size="13">Score</text>
+    </g>
+    <g>
+      <circle cx="664" cy="92" r="22" fill="#10241a" stroke="#3dba7a" stroke-width="2"/>
+      <text x="664" y="97" fill="#c8f5dc" font-size="13" font-weight="700">4</text>
+      <text x="664" y="132" fill="#eeeaf8" font-size="13">Deliver</text>
+    </g>
+  </g>
+  <circle r="6" fill="#f4f1ff">
+    <animateMotion dur="6s" repeatCount="indefinite" rotate="auto">
+      <mpath href="#ronda"/>
+    </animateMotion>
+  </circle>
+</svg>

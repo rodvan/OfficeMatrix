@@ -1,0 +1,11 @@
+{
+  "name": "officematrix",
+  "version": "0.1.0",
+  "description": "Oficina local donde varias CLIs de IA trabajan por turnos sobre un proyecto compartido",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test \"tests/*.test.js\""
+  },
+  "license": "Apache-2.0"
+}

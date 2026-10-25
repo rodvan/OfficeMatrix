@@ -1,0 +1,291 @@
+<div align="center">
+
+<img src="docs/img/portada.png" alt="OfficeMatrix - Centro de Mando Multi-IA Autónomo" width="100%" />
+
+# 🏢 OfficeMatrix
+
+### **Tu propio equipo creativo de IAs con tus suscripciones.**
+
+*Un centro de mando local, sin dependencias externas, donde las mejores IAs de línea de comandos (**Claude, Codex, Grok, Kimi y Antigravity**) trabajan juntas sobre tu proyecto: debatiendo objeciones con argumentos y pruebas, compartiendo un cerebro con memoria persistente y verificando cada cambio en disco hasta alcanzar consenso.*
+
+[![Licencia: Apache-2.0](https://img.shields.io/badge/Licencia-Apache_2.0-00FF66?style=for-the-badge&logo=apache&logoColor=white)](LICENSE)
+[![Node.js >= 18](https://img.shields.io/badge/Node.js-%3E%3D18%20(Cero%20Deps)-10A37F?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org)
+[![Pruebas: 183 en Verde](https://img.shields.io/badge/Pruebas-183%20en%20Verde-4F8DF5?style=for-the-badge&logo=checkmarx&logoColor=white)](#-pruebas-y-desarrollo)
+[![Suscripciones Flat-Rate](https://img.shields.io/badge/CLIs-Suscripciones%20Oficiales-D0704F?style=for-the-badge)](#-instalación-rápida-en-3-pasos)
+[![Creado por Cerebro Digital](https://img.shields.io/badge/Por-Cerebro%20Digital-7c5cff?style=for-the-badge)](https://github.com/rodvan)
+
+[**🇬🇧 English**](README.md) · [**🇪🇸 Español**](README.es.md) · [**🚀 Instalación Rápida**](#-instalación-rápida-en-3-pasos) · [**🏛️ Modos de Trabajo**](#-tres-modos-de-orquestación) · [**📖 Guía de Instalación**](docs/INSTALAR.md) · [**🤖 Conectar Agentes**](docs/AGENTES.md) · [**💖 Donaciones**](#-apoyo-y-donaciones)
+
+</div>
+
+---
+
+<div align="center">
+
+### 🎬 Cubierta de Mando en Vivo
+
+![OfficeMatrix Escena en Vivo](docs/img/escena.gif)
+
+*El puente de mando isométrico: observa a tu tripulación caminar hacia sus puestos para programar (⌨), pasear mientras razonan (💭), debatir objeciones con el Operador (💬) y celebrar con el puño en alto cada consenso unánime (✔).*
+
+<br/>
+
+### 🖥️ Interfaz en Escritorio (1440px) y Móvil (390px)
+
+![OfficeMatrix Desktop UI](docs/img/en-1440.png)
+
+<img src="docs/img/en-390.png" alt="OfficeMatrix Mobile UI" width="360" />
+
+*Telemetría multi-agente en tiempo real, salida de terminal en streaming, gráficas SVG interactivas, matriz de revisión cruzada y motor de debate estructurado.*
+
+</div>
+
+---
+
+## ⚡ ¿Por qué OfficeMatrix?
+
+Si desarrollas software en serio, estructuras arquitectura, investigas a fondo o diseñas estrategia técnica, conoces la realidad cotidiana: **todo modelo de IA tiene puntos ciegos.**
+
+- **Claude** brilla estructurando arquitectura, redacción y diseño de sistemas, pero a veces sobre-abstrae.
+- **Codex (ChatGPT)** es quirúrgico implementando código y automatizaciones de terminal, pero puede perder de vista el cuadro global.
+- **Grok** es un auditor implacable cazando datos dudosos, sesgos y casos límite, pero necesita estructura firme.
+- **Kimi (Moonshot AI)** aporta un razonamiento excepcional en contextos masivos y dominio multilingüe.
+- **Gemini / Antigravity** sintetiza grandes volúmenes de documentación y referencias técnicas.
+
+Hasta hoy, combinar sus fortalezas significaba **convertirte en un router humano de copiar y pegar**: mover archivos de pestaña en pestaña, copiar críticas manualmente, perder versiones y pagar tarifas por token de API sobre las suscripciones mensuales ($20–$200/mes) que *ya estás pagando*.
+
+**OfficeMatrix automatiza todo el ciclo de revisión por pares en tu propia máquina:**
+
+1. **Cero Dependencias Externas:** 100% construido sobre la biblioteca estándar de Node.js. Sin `npm install`, sin dependencias pesadas y funcionando completamente offline en tu localhost.
+2. **Usa tus Suscripciones Existentes:** Lanza las herramientas oficiales de terminal (`claude`, `codex`, `grok`, `kimi`, `agy`) en modo streaming sin interfaz gráfica, aprovechando tus sesiones activas. Sin pagar tokens de API por uso.
+3. **Unanimidad Verificada en Disco (`lib/snapshot.js`):** Un agente no puede decir *"APROBADO"* si modificó archivos en secreto o no asignó nota. El servidor compara el estado exacto del disco (tamaño, fecha de modificación y diff unificado) antes y después de cada turno. Si hubo cambios en archivos de trabajo, rebaja automáticamente el veredicto a `CAMBIOS`.
+4. **Debate Estructurado con Objeciones (`lib/debate.js`):** Las discrepancias no se silencian sobrescribiendo el trabajo ajeno. Cuando un agente abre una objeción (`#1`), los siguientes están obligados a responderla formalmente (`RESUELTA`, `RECHAZADA` con pruebas o `DE ACUERDO`). Las objeciones abiertas impiden el cierre del ciclo.
+5. **Cerebro Compartido con Fusión de 3 Vías (`lib/memory.js`):** Cada encargo enseña a la oficina. Las IAs guardan patrones reutilizables (trampas técnicas, hooks, estándares) en un Cerebro Markdown (`memoria/`). Una fusión de tres vías línea por línea evita colisiones entre misiones simultáneas y conserva un historial de 30 versiones por tema.
+
+---
+
+## 🚀 Instalación Rápida en 3 Pasos
+
+OfficeMatrix requiere **Node.js 18+** y **git**. No hace falta ejecutar `npm install`.
+
+### Paso 1: Clona el Repositorio y Ejecuta el Instalador
+
+```bash
+git clone https://github.com/rodvan/OfficeMatrix.git
+cd OfficeMatrix
+```
+
+Ejecuta el asistente automático según tu sistema operativo:
+
+```powershell
+# En Windows (PowerShell, sin permisos de administrador)
+.\instalar.ps1
+```
+
+```bash
+# En Linux y macOS (Bash/Zsh)
+sh instalar.sh
+```
+
+El instalador comprueba Node y git, analiza qué CLIs ya tienes en el sistema y crea tu lanzador directo (`iniciar-officematrix.cmd` o `iniciar-officematrix.sh`). No instala programas ni altera variables del sistema sin consultarte.
+
+### Paso 2: Inicia sesión en las CLIs que ya pagas
+
+Con una CLI y la sesión hecha ya puedes lanzar una misión. Con dos o más empieza la revisión cruzada:
+
+| Asistente IA | Comando CLI | Instalación e Inicio de Sesión |
+|---|---|---|
+| **Claude Code** | `claude` | `irm https://claude.ai/install.ps1 \| iex` (Win) o `curl -fsSL https://claude.ai/install.sh \| bash` (Mac/Linux) → `claude` |
+| **Codex (ChatGPT)** | `codex` | `npm install -g @openai/codex` → `codex login` |
+| **Grok (xAI)** | `grok` | `irm https://x.ai/cli/install.ps1 \| iex` (Win) → `grok login` |
+| **Kimi (Moonshot AI)** | `kimi` | `irm https://code.kimi.com/kimi-code/install.ps1 \| iex` (Win) → `kimi login` *(Ver [docs/AGENTES.md](docs/AGENTES.md))* |
+| **Antigravity (Gemini)** | `agy` | `irm https://antigravity.google/cli/install.ps1 \| iex` → `agy` *(Desactivada por defecto; ver aviso)* |
+
+> ⚠️ **Aviso sobre Google Antigravity (`agy`):** La sección 6 de los Términos de Servicio de Antigravity restringe el acceso mediante software de terceros. Por seguridad para el usuario, Antigravity viene desactivada por defecto (`"enabled": false` en `agents.example.json`). Consulta [docs/INSTALAR.md](docs/INSTALAR.md) antes de activarla.
+
+> 💡 **Asistente «Primeros Pasos» en la App:** Al abrir la interfaz web, el asistente integrado detecta en tiempo real las CLIs instaladas, te ofrece comandos de copia y pega para las que falten y te permite probar cada una con un botón de prueba rápida en un clic.
+
+### Paso 3: Arranca la Oficina
+
+```bash
+# Iniciar el servidor (puerto 4321 por defecto)
+node server.js
+```
+
+O haz doble clic en `iniciar-officematrix.cmd` (Windows) / ejecuta `./iniciar-officematrix.sh` (Linux/Mac).
+
+Abre **[http://localhost:4321](http://localhost:4321)** en tu navegador.
+
+> 🧪 **Modo Demostración sin Gastar Cupo:** ¿Quieres ver la interfaz y las animaciones de la tripulación sin gastar turnos reales? Lanza el simulador integrado:
+> ```bash
+> node tests/helpers/demo-server.js 4400 120
+> # Abre http://localhost:4400
+> ```
+
+---
+
+## 🏛️ Tres Modos de Orquestación
+
+OfficeMatrix analiza tu encargo y sugiere la mejor topología de trabajo, o te permite elegirla libremente (todo el detalle en [docs/MODOS-DE-TRABAJO.md](docs/MODOS-DE-TRABAJO.md)):
+
+```mermaid
+flowchart TD
+  subgraph Modo1["1. Modo Relevo (Revisión Secuencial)"]
+    R1["Claude (Arquitectura)"] --> R2["Codex (Código y Pruebas)"]
+    R2 --> R3["Grok (Auditoría y Limpieza)"]
+    R3 -->|"Debate y Notas >= 9"| R4["Entrega por Consenso"]
+  end
+
+  subgraph Modo2["2. Modo Delphi (Paralelo + Rotación Ciega)"]
+    D1["Borradores Independientes en Paralelo"] --> D2["Rotación Anónima entre Modelos"]
+    D2 --> D3["Revisión y Mejora Cruzada"]
+    D3 --> D4["El Borrador Mejor Puntuado pasa a final/"]
+  end
+
+  subgraph Modo3["3. Modo Consejo (Evaluación y Síntesis)"]
+    C1["Borradores Paralelos de Todas las IAs"] --> C2["Matriz de Calificación Cruzada"]
+    C2 --> C3["El Presidente Sintetiza las Mejores Ideas"]
+    C3 --> C4["El Consejo Audita la Entrega en final/"]
+  end
+```
+
+<p align="center">
+  <img src="docs/img/rondas.svg" alt="Una ronda: borrador, revisión, nota y entrega; luego el testigo vuelve a empezar." width="720">
+</p>
+
+*Una vuelta a la mesa. El testigo sigue hasta que la nota alcanza para entregar.*
+
+### 1. 🔁 Relevo (Flujo Secuencial)
+- **Ideal para:** Proyectos de código, refactorizaciones y desarrollo de aplicaciones.
+- **Cómo opera:** Las IAs trabajan una detrás de otra directamente sobre la carpeta del proyecto. Cada agente audita los cambios reales de la anterior, responde objeciones pendientes y deja un `HANDOFF.md` documentado hasta que todas aprueban unánimemente (`Nota >= 9/10`).
+
+### 2. ⚡ Delphi (Paralelo + Rotación Ciega)
+- **Ideal para:** Investigación profunda, verificación de hechos y auditorías técnicas.
+- **Cómo opera:** Todos los agentes redactan borradores independientes a la vez en `borradores/A`, `B`, `C`, `D`. En las rondas siguientes, los borradores rotan de forma anónima: cada IA audita y enriquece el borrador de otra **sin saber qué modelo lo redactó**, eliminando sesgos de anclaje. El mejor borrador consolidado se promueve a `final/`.
+
+### 3. 🏛️ Consejo (Puntuación Cruzada y Síntesis)
+- **Ideal para:** Guiones virales, estrategia de negocio, artículos de fondo y propuestas.
+- **Cómo opera:** Fase 1 con borradores simultáneos. Fase 2 de evaluación cruzada ciega (`PUNTAJES:` de 1 a 10). En Fase 3, el Presidente del Consejo sintetiza lo más brillante de cada perspectiva en `final/`, y en Fase 4 el consejo audita la pieza final antes de aprobar.
+
+---
+
+## 🕶️ La Cubierta de Mando y Arquetipos
+
+Alterna entre el **Puente de Mando Isométrico** y la **Vista de Telemetría** con el botón superior en la barra de navegación.
+
+<br/>
+
+| Tripulación | Arquetipo | IA por Defecto | Color de Estación | Especialidad en el Equipo |
+| :---: | :--- | :--- | :---: | :--- |
+| <img src="public/nave/iso/lider-1.png" width="40" alt="Líder" onerror="this.style.display='none'"/> | **El Líder** (`lider`) | Claude | `#D0704F` | Arquitectura, visión estratégica y coherencia global. |
+| <img src="public/nave/iso/elegido-1.png" width="40" alt="Elegido" onerror="this.style.display='none'"/> | **El Elegido** (`elegido`) | Codex | `#10A37F` | Código quirúrgico, scripts de automatización y pruebas. |
+| <img src="public/nave/iso/capitana-1.png" width="40" alt="Capitana" onerror="this.style.display='none'"/> | **La Capitana** (`capitana`) | Grok | `#C062D6` | Auditoría crítica, verificación de hechos y casos límite. |
+| <img src="public/nave/iso/piloto-1.png" width="40" alt="Piloto" onerror="this.style.display='none'"/> | **La Piloto** (`piloto`) | Kimi / Local | `#4F8DF5` | Razonamiento multilingüe, análisis de contexto largo e investigación. |
+| <img src="public/nave/iso/operador-1.png" width="40" alt="Operador" onerror="this.style.display='none'"/> | **El Operador** (`operador`) | Sistema | `#00FF66` | Telemetría en vivo, gestión de turnos y orquestación. |
+| <img src="public/nave/iso/sabia-1.png" width="40" alt="Sabia" onerror="this.style.display='none'"/> | **La Sabia** (`sabia`) | Cerebro Compartido | `#F5B942` | Guardiana del conocimiento: se ilumina cuando se añade sabiduría a `memoria/`. |
+
+---
+
+## 🌐 Aplicación Hermana: Conexión con ViralHunt
+
+Cualquier oficina puede trabajar como una **editorial continua** conectada a **[ViralHunt](https://viralhunt.io)**:
+
+- **Tandas con horario:** dos veces al día (a las horas de la regla de la oficina) el equipo investiga lo viral y deja propuestas listas: imagen y hook, copy por red, fuente y hora sugerida.
+- **Tú decides en la bandeja *Propuestas*:** **Aprobar** (va a ViralHunt como borrador o agendado, según la regla), **Pedir cambios** (solo esa propuesta vuelve al equipo, con tu nota) o **Rechazar** (con un motivo). Cada decisión actualiza `memoria/gusto-editorial.md`, que lee la tanda siguiente.
+- **Tu token no sale del servidor:** créalo en ViralHunt → Account → API Access (grupo **writer**) y pégalo en ⚙ de la oficina → *ViralHunt*. Nunca vuelve a la UI ni llega a los agentes; tras aprobar, la bandeja dice dónde quedó de verdad (borrador, Review pendiente o agendado).
+
+Pruébalo sin servicios reales (agentes falsos y ViralHunt simulado en los puertos 4410–4499):
+
+```bash
+powershell -File tests/helpers/editorial-images.ps1   # Windows: tres imágenes de ejemplo
+node tests/helpers/editorial-demo.js                  # abre en el puerto 4400, datos en .demo-editorial/
+```
+
+Diseño y API: [`docs/es/EDITORIAL.md`](docs/es/EDITORIAL.md).
+
+---
+
+## 🛡️ Robustez Operativa ante Fallos de CLIs
+
+En el mundo real, los procesos de terminal sufren caídas de red, cuotas agotadas o desconexiones. `lib/failure.js` clasifica estos incidentes para que **el resto de la oficina continúe trabajando**:
+
+| Incidencia Detectada | Diagnóstico | Acción Automática de Recuperación |
+|---|---|---|
+| `HTTP 402` / `balance exhausted` | `sin_saldo` | Retira temporalmente al agente en esta misión; el resto termina el encargo. |
+| `HTTP 429` / `quota reset` | `limite` | Pausa el modelo hasta que venza la ventana o conmuta al siguiente modelo (`models: [...]`). |
+| `401` / `Authentication required` | `sin_sesion` | Muestra el comando exacto para iniciar sesión en la tarjeta del agente. |
+| `10 minutos sin actividad en terminal` | `colgada` | Corta el árbol de procesos completo (`taskkill /T /F` en Windows) para no bloquear la cola. |
+
+---
+
+## 🔒 Seguridad y Aislamiento Local
+
+1. **Enlace Estrictamente Local:** El servidor escucha por defecto solo en `127.0.0.1:4321`. No expongas este puerto a redes públicas sin un proxy inverso autenticado.
+2. **Cero Retención de Credenciales:** OfficeMatrix nunca solicita, intercepta ni almacena tus contraseñas, claves o tokens de sesión. La autenticación la gestiona directamente cada CLI oficial en tu cuenta de usuario del sistema operativo.
+3. **Aislamiento por Encargo:** Cada misión se ejecuta exclusivamente dentro de su carpeta designada (`proyectos/<id-mision>/`).
+
+---
+
+## ❓ Preguntas Frecuentes (FAQ)
+
+<details>
+<summary><b>1. ¿Necesito claves de API de pago para usar OfficeMatrix?</b></summary>
+
+No. OfficeMatrix está diseñado para utilizar las suscripciones mensuales de tarifa plana que ya pagas en Anthropic (Claude Pro/Max), OpenAI (ChatGPT Plus/Pro), xAI (X Premium/SuperGrok) o Moonshot (Kimi). Solo inicia sesión en sus CLIs oficiales desde tu terminal.
+</details>
+
+<details>
+<summary><b>2. ¿Puedo conectar modelos locales (Ollama, llama.cpp)?</b></summary>
+
+Sí. Cualquier ejecutable que reciba un prompt por argumento y devuelva texto se puede conectar en `agents.json` configurando `"stream": "text"`. Consulta [docs/AGENTES.md](docs/AGENTES.md) para ver la guía paso a paso.
+</details>
+
+<details>
+<summary><b>3. ¿Qué ocurre si no tengo instaladas todas las CLIs?</b></summary>
+
+OfficeMatrix funciona perfectamente con cualquier combinación de IAs que tengas (incluso con solo 2 agentes). Las CLIs ausentes simplemente se marcan y se omiten de los turnos sin detener el sistema.
+</details>
+
+<details>
+<summary><b>4. ¿Cómo funciona Kimi (Moonshot AI) con suscripción?</b></summary>
+
+La CLI oficial Kimi Code (`kimi`) admite autenticación OAuth mediante código de dispositivo (`kimi login`) vinculada a tu membresía Kimi Plus o Pro, sin requerir claves de API por uso. Encontrarás los detalles en [docs/AGENTES.md](docs/AGENTES.md).
+</details>
+
+---
+
+## 🧪 Pruebas y Desarrollo
+
+Mantenemos una batería automatizada rigurosa con cero dependencias externas:
+
+```bash
+# Ejecutar las pruebas unitarias y de integración (183, sin dependencias)
+npm test
+
+# Escaneo de higiene y privacidad antes de publicar
+node scripts/revisar-publicacion.js
+
+# Volver a grabar la escena (docs/img/escena.gif + escena.png) con agentes falsos en el puerto 4430
+node scripts/grabar-escena.js
+```
+
+---
+
+## 💖 Apoyo y Donaciones
+
+OfficeMatrix es desarrollado y mantenido por **[Cerebro Digital](https://github.com/rodvan)** y distribuido como software libre bajo la **Licencia Apache 2.0**.
+
+Si OfficeMatrix te ahorra horas de trabajo o previene errores críticos en tus proyectos, puedes apoyar su desarrollo continuo:
+
+- **💳 PayPal:** `<<PAYPAL_DEL_USUARIO>>`
+- **₿ Bitcoin (BTC):** `<<BITCOIN_DEL_USUARIO>>`
+
+---
+
+## 🤝 Contribuciones y Licencia
+
+- **Contribuciones:** Consulta [CONTRIBUTING.md](CONTRIBUTING.md) para pautas de código y adaptadores de streams.
+- **Seguridad:** Consulta [SECURITY.md](SECURITY.md) para reportar vulnerabilidades de forma privada.
+- **Código de Conducta:** [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+- **Toda la documentación:** [docs/es/README.md](docs/es/README.md) (instalar, agentes, modos, editorial, Grok Bots, agentes externos y publicar).
+- **Licencia:** Distribuido bajo la [Licencia Apache 2.0](LICENSE).
