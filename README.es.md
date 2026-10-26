@@ -8,13 +8,19 @@
 
 *Un centro de mando local, sin dependencias externas, donde las mejores IAs de línea de comandos (**Claude, Codex, Grok, Kimi y Antigravity**) trabajan juntas sobre tu proyecto: debatiendo objeciones con argumentos y pruebas, compartiendo un cerebro con memoria persistente y verificando cada cambio en disco hasta alcanzar consenso.*
 
+> 🌐 **Hecha para impulsar [ViralHunt](https://viralhunt.io).** El equipo detrás de ViralHunt creó OfficeMatrix para
+> llevar su propia operación de contenido: oficinas de IAs que encuentran lo que se está haciendo viral, redactan posts
+> con la marca e imagen, verifican sus fuentes y se los pasan a una persona que aprueba. ViralHunt los agenda y publica, y
+> sus estadísticas le enseñan a la siguiente tanda qué funcionó. La abrimos para que tengas tu propia tripulación, con o
+> sin ViralHunt.
+
 [![Licencia: Apache-2.0](https://img.shields.io/badge/Licencia-Apache_2.0-00FF66?style=for-the-badge&logo=apache&logoColor=white)](LICENSE)
 [![Node.js >= 18](https://img.shields.io/badge/Node.js-%3E%3D18%20(Cero%20Deps)-10A37F?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org)
-[![Pruebas: 212 en Verde](https://img.shields.io/badge/Pruebas-212%20en%20Verde-4F8DF5?style=for-the-badge&logo=checkmarx&logoColor=white)](#-pruebas-y-desarrollo)
+[![Pruebas: 252 en Verde](https://img.shields.io/badge/Pruebas-252%20en%20Verde-4F8DF5?style=for-the-badge&logo=checkmarx&logoColor=white)](#-pruebas-y-desarrollo)
 [![Suscripciones Flat-Rate](https://img.shields.io/badge/CLIs-Suscripciones%20Oficiales-D0704F?style=for-the-badge)](#-instalación-rápida-en-3-pasos)
 [![Creado por Cerebro Digital](https://img.shields.io/badge/Por-Cerebro%20Digital-7c5cff?style=for-the-badge)](https://github.com/rodvan)
 
-[**🇬🇧 English**](README.md) · [**🇪🇸 Español**](README.es.md) · [**🚀 Instalación Rápida**](#-instalación-rápida-en-3-pasos) · [**🏛️ Modos de Trabajo**](#-tres-modos-de-orquestación) · [**📖 Guía de Instalación**](docs/INSTALAR.md) · [**🤖 Conectar Agentes**](docs/AGENTES.md) · [**💖 Donaciones**](#-apoyo-y-donaciones)
+[**🇬🇧 English**](README.md) · [**🇪🇸 Español**](README.es.md) · [**🚀 Instalación Rápida**](#-instalación-rápida-en-3-pasos) · [**🏛️ Modos de Trabajo**](#-tres-modos-de-orquestación) · [**🌐 ViralHunt**](#-hecha-para-viralhunt) · [**🛸 La Nave en Discord**](#-la-nave-y-sus-oficinas-en-discord) · [**📖 Guía de Instalación**](docs/INSTALAR.md) · [**🤖 Conectar Agentes**](docs/AGENTES.md) · [**💖 Donaciones**](#-apoyo-y-donaciones)
 
 </div>
 
@@ -219,19 +225,75 @@ No todo tiene que ser una misión. Cada oficina tiene una pestaña **Chat** junt
 
 Para conectar un bot, abre el ⚙ de la oficina y sigue la lista en vivo. El paso a paso, incluido el túnel de Cloudflare (el servicio es solo `http://localhost:4323`), está en [docs/es/GROK-BOTS.md](docs/es/GROK-BOTS.md). Guía en inglés: [docs/GROK-BOTS.md](docs/GROK-BOTS.md).
 
-**💬 Discord.** Dale a cada oficina su propio bot de Discord: habla con las IAs de esa oficina desde el celular (`@bot @grok …`), recibe avisos de misiones y aprueba propuestas editoriales con un botón. El bot de la Nave muestra el estado de todas y le pregunta a la oficina que nombres. Sin túnel. Guía: [docs/es/DISCORD.md](docs/es/DISCORD.md).
+---
+
+## 🛸 La Nave y sus oficinas, en Discord
+
+Cada oficina es una tripulación aislada, con sus misiones, su cerebro y su equipo. La **Nave** es la nave nodriza que
+está sobre todas. Ahora las dos pueden vivir en tu servidor de Discord:
+
+```mermaid
+flowchart TB
+    subgraph D[Tu servidor de Discord]
+      N["#nave  🛸 Bot de la Nave"]
+      A["#marca-a  🤖 Bot de la oficina A"]
+      B["#marca-b  🤖 Bot de la oficina B"]
+    end
+    N -- "estado · pregunta a la oficina que nombres" --> OA
+    N -. "solo si la oficina comparte" .-> OB
+    A --> OA[🏢 Oficina A<br/>su chat, misiones, propuestas]
+    B --> OB[🏢 Oficina B<br/>su chat, misiones, propuestas]
+```
+
+- **Un bot por oficina, sellado:** el bot de la oficina A solo conoce la oficina A. Si le preguntas por la B, no tiene cómo
+  llegar.
+- **El bot de la Nave coordina:** `@nave estado` muestra todas las oficinas (misiones en curso, propuestas pendientes,
+  bots en línea). `@nave oficina-a: ¿cómo va el lanzamiento?` le pasa la pregunta a las IAs de esa oficina y te trae la
+  respuesta, solo en las oficinas que eligen compartir con la Nave.
+- **Tus IAs, desde el celular:** `@bot @grok busca tendencias de Artemis` y contesta esa IA con su nombre. La
+  conversación también queda en el chat de la oficina del panel.
+- **Avisos y botones:** misiones terminadas, IAs que fallan y propuestas editoriales nuevas con imagen, semáforo y botones
+  **Aprobar / Rechazar** que van directo a ViralHunt.
+- **Seguro de fábrica:** solo obedece a los IDs de Discord que autorices. Los turnos desde Discord son de solo lectura, y
+  Claude además pierde las herramientas de archivos. El token se queda en tu PC. El bot se conecta hacia afuera: sin túnel
+  ni puertos abiertos.
+
+Se configura en 5 minutos por oficina: [docs/es/DISCORD.md](docs/es/DISCORD.md).
 
 ---
 
-## 🌐 Aplicación Hermana: Conexión con ViralHunt
+## 🌐 Hecha para ViralHunt
 
-Cualquier oficina puede trabajar como una **editorial continua** conectada a **[ViralHunt](https://viralhunt.io)**:
+OfficeMatrix es el motor de la redacción de **[ViralHunt](https://viralhunt.io)**. Cualquier oficina puede funcionar como
+una **redacción permanente** conectada a ella, y el ciclo no se detiene:
 
-- **Tandas con horario:** dos veces al día (a las horas de la regla de la oficina) el equipo investiga lo viral y deja propuestas listas: imagen y hook, copy por red, fuente y hora sugerida.
-- **Tú decides en la bandeja *Propuestas*:** **Aprobar** (va a ViralHunt como borrador o agendado, según la regla), **Pedir cambios** (solo esa propuesta vuelve al equipo, con tu nota) o **Rechazar** (con un motivo). Cada decisión actualiza `memoria/gusto-editorial.md`, que lee la tanda siguiente.
-- **Tu token no sale del servidor:** créalo en ViralHunt → Account → API Access (grupo **writer**) y pégalo en ⚙ de la oficina → *ViralHunt*. Nunca vuelve a la UI ni llega a los agentes; tras aprobar, la bandeja dice dónde quedó de verdad (borrador, Review pendiente o agendado).
+```mermaid
+flowchart LR
+    R[📡 Radar<br/>cada hora] --> S[🌱 Semillas]
+    P[📈 Desempeño<br/>estadísticas de ViralHunt] --> M[🔁 Más como este<br/>tendencias parecidas]
+    M --> S
+    S --> W[✍️ Redacción + imagen<br/>fuentes + semáforo]
+    W --> T{🗂 Bandeja<br/>dashboard o Discord}
+    T -- Aprobar --> V[🚀 ViralHunt<br/>agenda y publica]
+    T -- Rechazar / cambios --> L[🧠 Gusto aprendido]
+    V --> P
+    L --> W
+```
 
-Pruébalo sin servicios reales (agentes falsos y ViralHunt simulado en los puertos 4410–4499):
+- **Rutinas que no duermen:** Radar cada hora, Desempeño cada mañana (lee `stats.php` de ViralHunt y marca a los
+  ganadores), *Más como este* (busca temas parecidos en tendencia para cada ganador), *Aprender de las ediciones* (lee lo
+  que cambiaste en ViralHunt) y Redacción. Cada una tiene su ventana horaria, su tope diario y Pausar / Reanudar / Ejecutar
+  ahora.
+- **Tú decides:** en el dashboard [`/editorial`](docs/es/EDITORIAL-V2.md) o con un botón en [Discord](docs/es/DISCORD.md).
+  **Aprobar** la manda a ViralHunt como borrador o agendada, según la regla de la oficina. **Pedir cambios** devuelve solo
+  esa propuesta al equipo. **Rechazar** pide un motivo. Cada decisión alimenta `gusto-editorial.md`.
+- **Contra la desinformación:** cada propuesta lleva un semáforo. 🟢 es fuente primaria leída, 🟡 solo fuentes
+  secundarias, 🔴 sin fuente o contradicha. Una roja no se puede aprobar.
+- **Tu token se queda en el servidor:** créalo en ViralHunt → Cuenta → Acceso API (grupo **writer**) y pégalo en el ⚙ de la
+  oficina → *ViralHunt*. Nunca vuelve a la interfaz ni llega a los agentes.
+- **Galería:** todo lo que pasó por la bandeja, con métricas reales, exportar y *Reusar* como semilla nueva.
+
+Pruébala sin servicios reales (agentes falsos y un ViralHunt simulado en los puertos 4410–4499):
 
 ```bash
 powershell -File tests/helpers/editorial-images.ps1   # Windows: tres imágenes de ejemplo
@@ -296,7 +358,7 @@ La CLI oficial Kimi Code (`kimi`) admite autenticación OAuth mediante código d
 Mantenemos una batería automatizada rigurosa con cero dependencias externas:
 
 ```bash
-# Ejecutar las pruebas unitarias y de integración (212, sin dependencias)
+# Ejecutar las pruebas unitarias y de integración (252, sin dependencias)
 npm test
 
 # Escaneo de higiene y privacidad antes de publicar

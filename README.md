@@ -8,13 +8,18 @@
 
 *A local, zero-dependency command center where frontier AI coding assistants (**Claude, Codex, Grok, Kimi, and Antigravity**) work together on your project—debating objections with evidence, sharing persistent memory, and verifying every diff on disk until consensus.*
 
+> 🌐 **Built to power [ViralHunt](https://viralhunt.io).** OfficeMatrix was made by the team behind ViralHunt to run its
+> own content operation: AI offices that find what is going viral, draft on-brand posts with images, check their sources,
+> and hand them to a human who approves. ViralHunt then schedules and publishes them, and its stats teach the next batch
+> what worked. We open-sourced it so you can run your own crew, with or without ViralHunt.
+
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-00FF66?style=for-the-badge&logo=apache&logoColor=white)](LICENSE)
 [![Node.js >= 18](https://img.shields.io/badge/Node.js-%3E%3D18%20(Zero%20Deps)-10A37F?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org)
-[![Tests: 212 Passing](https://img.shields.io/badge/Tests-212%20Passing-4F8DF5?style=for-the-badge&logo=checkmarx&logoColor=white)](#-testing--development)
+[![Tests: 252 Passing](https://img.shields.io/badge/Tests-252%20Passing-4F8DF5?style=for-the-badge&logo=checkmarx&logoColor=white)](#-testing--development)
 [![Flat-Rate Subscriptions](https://img.shields.io/badge/CLIs-Flat--Rate%20Subscriptions-D0704F?style=for-the-badge)](#-quick-start-in-3-steps)
 [![Created by Cerebro Digital](https://img.shields.io/badge/By-Cerebro%20Digital-7c5cff?style=for-the-badge)](https://github.com/rodvan)
 
-[**🇬🇧 English**](README.md) · [**🇪🇸 Español**](README.es.md) · [**🚀 Quick Start**](#-quick-start-in-3-steps) · [**🏛️ Work Modes**](#-three-orchestration-modes) · [**📖 Installation Guide**](docs/INSTALL.md) · [**🤖 Connect Agents**](docs/AGENTS.md) · [**💖 Support & Donate**](#-support--donations)
+[**🇬🇧 English**](README.md) · [**🇪🇸 Español**](README.es.md) · [**🚀 Quick Start**](#-quick-start-in-3-steps) · [**🏛️ Work Modes**](#-three-orchestration-modes) · [**🌐 ViralHunt**](#-built-for-viralhunt) · [**🛸 Ship on Discord**](#-the-ship-and-its-offices-on-discord) · [**📖 Installation Guide**](docs/INSTALL.md) · [**🤖 Connect Agents**](docs/AGENTS.md) · [**💖 Support & Donate**](#-support--donations)
 
 </div>
 
@@ -219,17 +224,71 @@ Not every message has to be a mission. Each office has a **Chat** tab next to mi
 
 To connect a bot, open the office ⚙ and follow the live checklist. The step-by-step, including the Cloudflare tunnel (service only `http://localhost:4323`), is in [docs/GROK-BOTS.md](docs/GROK-BOTS.md). Spanish guide: [docs/es/GROK-BOTS.md](docs/es/GROK-BOTS.md).
 
-**💬 Discord.** Give each office its own Discord bot: talk to that office's AIs from your phone (`@bot @grok …`), get mission alerts, and approve editorial proposals with a button. The Ship's bot shows every office's status and asks the office you name. No tunnel needed. Guide: [docs/DISCORD.md](docs/DISCORD.md).
+---
+
+## 🛸 The Ship and its offices, on Discord
+
+Each office is an isolated crew with its own missions, its own brain and its own team. The **Ship** is the mothership
+above them all. Now both can live in your Discord server:
+
+```mermaid
+flowchart TB
+    subgraph D[Your Discord server]
+      N["#ship  🛸 Ship bot"]
+      A["#brand-a  🤖 Office A bot"]
+      B["#brand-b  🤖 Office B bot"]
+    end
+    N -- "status · asks the office you name" --> OA
+    N -. "only if the office shares" .-> OB
+    A --> OA[🏢 Office A<br/>its chat, missions, proposals]
+    B --> OB[🏢 Office B<br/>its chat, missions, proposals]
+```
+
+- **One bot per office, sealed:** the Office A bot only knows Office A. Ask it about Office B and it has no way to get
+  there.
+- **The Ship bot coordinates:** `@ship status` shows every office (missions running, pending proposals, bots online).
+  `@ship office-a: how is the launch going?` passes the question to that office's AIs and brings the answer back, only
+  for offices that choose to share with the Ship.
+- **Your AIs, from your phone:** `@bot @grok find trends about Artemis` and that AI answers with its name. The thread is
+  also saved in the office chat in the panel.
+- **Alerts and buttons:** finished missions, AIs that fail, and new editorial proposals with image, traffic light and
+  **Approve / Reject** buttons that go straight to ViralHunt.
+- **Safe by default:** only the Discord IDs you authorize are obeyed. Discord turns are read-only, and Claude also loses
+  file tools. The token stays on your PC. The bot connects out, so no tunnel and no open ports.
+
+Set it up in 5 minutes per office: [docs/DISCORD.md](docs/DISCORD.md).
 
 ---
 
-## 🌐 Sister App: ViralHunt Integration
+## 🌐 Built for ViralHunt
 
-Any office can run as a **continuous editorial desk** connected to **[ViralHunt](https://viralhunt.io)**:
+OfficeMatrix is the engine behind **[ViralHunt](https://viralhunt.io)**'s content desk. Any office can run as a
+**permanent editorial desk** connected to it, and the loop never stops:
 
-- **Batches on a schedule:** twice a day (at the hours in the office's rule) the team researches what is going viral and leaves ready proposals: image and hook, copy per network, source and suggested time.
-- **You decide in the *Proposals* tray:** **Approve** (it goes to ViralHunt as a draft or scheduled, as the rule says), **Request changes** (only that proposal goes back to the team, with your note) or **Reject** (with a reason). Every decision updates `memoria/gusto-editorial.md`, which the next batch reads.
-- **Your token stays on the server:** create it in ViralHunt → Account → API Access (group **writer**) and paste it in the office's ⚙ → *ViralHunt*. It never returns to the UI and never reaches the agents; after approving, the tray tells you the real destination (draft, pending Review, or scheduled).
+```mermaid
+flowchart LR
+    R[📡 Radar<br/>every hour] --> S[🌱 Seeds]
+    P[📈 Performance<br/>ViralHunt stats] --> M[🔁 More like this<br/>similar trends]
+    M --> S
+    S --> W[✍️ Writing + image<br/>sources + traffic light]
+    W --> T{🗂 Proposals tray<br/>dashboard or Discord}
+    T -- Approve --> V[🚀 ViralHunt<br/>schedules and publishes]
+    T -- Reject / changes --> L[🧠 Learned taste]
+    V --> P
+    L --> W
+```
+
+- **Routines that never sleep:** Radar every hour, Performance every morning (reads ViralHunt `stats.php` and marks the
+  winners), *More like this* (searches similar trending topics for each winner), *Learn from edits* (reads what you changed
+  in ViralHunt) and Writing. Each one has its window, its daily cap and Pause / Resume / Run now.
+- **You decide:** in the [`/editorial`](docs/EDITORIAL-V2.md) dashboard or with a button in [Discord](docs/DISCORD.md).
+  **Approve** sends it to ViralHunt as a draft or scheduled, as the office rule says. **Request changes** sends only that
+  proposal back to the team. **Reject** asks for a reason. Every decision feeds `gusto-editorial.md`.
+- **No misinformation:** every proposal carries a traffic light. 🟢 means a primary source was read, 🟡 only secondary
+  sources, 🔴 no source or contradicted. A red one cannot be approved.
+- **Your token stays on the server:** create it in ViralHunt → Account → API Access (group **writer**) and paste it in the
+  office ⚙ → *ViralHunt*. It never returns to the UI and never reaches the agents.
+- **Gallery:** everything that went through the tray, with real metrics, export and *Reuse* as a new seed.
 
 Try it without real services (fake agents and a simulated ViralHunt on ports 4410–4499):
 
@@ -296,7 +355,7 @@ Kimi Code CLI (`kimi`) supports device-code OAuth (`kimi login`) with a Kimi Plu
 We maintain a rigorous zero-dependency automated test suite:
 
 ```bash
-# Run all unit and integration tests (212, zero dependencies)
+# Run all unit and integration tests (252, zero dependencies)
 npm test
 
 # Run repository publication hygiene check
