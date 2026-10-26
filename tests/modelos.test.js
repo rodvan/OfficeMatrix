@@ -26,7 +26,7 @@ const fake = path.join(__dirname, 'helpers', 'fake-agent.js');
 fs.writeFileSync(path.join(home, 'agents.json'), JSON.stringify({
   agents: [{ id: 'gemini', name: 'Gemini', role: 'Probador', color: '#fff', cmd: 'node', stream: 'text',
     args: [fake, 'gemini', 'cuota', 'text', '{prompt}'], models: ['modelo-agotado', 'modelo-bueno'], modelFlag: '--model' }],
-  maxRounds: 1, minScore: 9, turnTimeoutMinutes: 1, idleTimeoutMinutes: 0,
+  maxRounds: 1, minScore: 9, turnTimeoutMinutes: 1, relatorMinutes: 0, idleTimeoutMinutes: 0,
 }));
 process.env.OFFICEMATRIX_HOME = home;
 process.env.OFFICEMATRIX_CONFIG = path.join(home, 'agents.json');

@@ -37,6 +37,10 @@
       <button type="button" id="officeNewBtn" class="btn ghost small" title="New office" data-i18n-title="ui.officeNewTitle">＋</button>
     </div>
     <div class="office-desc muted" id="officeDesc"></div>
+    <div class="side-switch" id="sideSwitch" role="tablist">
+      <button type="button" id="sideMissions" class="on" data-i18n="ui.side.missions">MISSIONS</button>
+      <button type="button" id="sideChat" data-i18n="ui.side.chat">CHAT</button>
+    </div>
     <button id="newChatBtn" class="btn primary wide" data-i18n="ui.newMission">＋ NEW MISSION</button>
     <input id="chatFilter" class="field" placeholder="filter missions…" data-i18n-placeholder="ui.chatFilter" autocomplete="off">
     <div class="label"><span data-i18n="ui.missionsLabel">Missions</span> <span id="chatCount" class="muted"></span></div>
@@ -85,6 +89,22 @@
       <div class="tab-body" id="tab-handoff" hidden></div>
       <div class="tab-body" id="tab-charts" hidden></div>
       <div class="tab-body" id="tab-agents" hidden></div>
+      <section id="officeChat" class="office-chat" hidden>
+        <header class="office-chat-head">
+          <div>
+            <h2 data-i18n="chat.title">Chat with your team</h2>
+            <p class="muted" data-i18n="chat.hint">Mention someone with @ to ask only them. With no mention, the host replies. This is not a mission.</p>
+          </div>
+          <button type="button" id="chatToMission" class="btn small" data-i18n="chat.toMission">TURN INTO A MISSION</button>
+        </header>
+        <ul id="chatMembers" class="chat-members"></ul>
+        <div id="chatLog" class="chat-log" role="log"></div>
+        <form id="chatForm" class="chat-form">
+          <div id="chatSuggest" class="chat-suggest" hidden></div>
+          <textarea id="chatInput" rows="2" data-i18n-placeholder="chat.placeholder" placeholder="Write to the office… @ to mention"></textarea>
+          <button type="submit" class="btn primary" data-i18n="chat.send">SEND</button>
+        </form>
+      </section>
     </section>
 
     <form id="composer" class="composer">
@@ -259,11 +279,39 @@
       </section>
       <section id="officeBots" class="office-keys" hidden>
         <div class="label"><span translate="no">Grok Bots</span> <small class="muted" data-i18n="ui.of.botsHint">— your Grok bots as employees of this office: they get their turn through their routine's webhook and reply to OfficeMatrix (docs/GROK-BOTS.md)</small></div>
+        <div class="label"><span data-i18n="wizard.checks">Connection checklist</span></div>
+        <ul id="botChecks" class="bot-checks"></ul>
+        <p><button type="button" id="botGateBtn" class="btn ghost small" hidden data-i18n="wizard.startGate">START THE GATE</button></p>
         <label class="bots-url"><span data-i18n="ui.of.tunnel">Public tunnel URL</span> <small class="muted" data-i18n="ui.of.tunnelHint">(Cloudflare → http://localhost:4323, the bots' door; shared by every office)</small>
           <span class="office-key-new"><input id="botsUrl" class="field" placeholder="https://bots.yourdomain.com" data-i18n-placeholder="ui.of.tunnelPh" autocomplete="off"><button type="button" id="botsUrlBtn" class="btn ghost small" data-i18n="ui.save">SAVE</button></span></label>
+        <details class="bot-guide">
+          <summary data-i18n="wizard.cf.summary">Cloudflare tunnel, for beginners</summary>
+          <ol>
+            <li data-i18n="wizard.cf.install">Install cloudflared yourself from Cloudflare's site. OfficeMatrix does not install software and does not need administrator rights.</li>
+            <li data-i18n="wizard.cf.quick">Quick tunnel (try it): in a terminal, run cloudflared tunnel --url http://localhost:4323. Copy the https address into Public tunnel URL.</li>
+            <li data-i18n="wizard.cf.named">Named tunnel (keep it): in Cloudflare Zero Trust, create a tunnel and a public hostname. The service is only http://localhost:4323.</li>
+            <li data-i18n="wizard.cf.service">The service must be exactly http://localhost:4323 (the bots' gate). The panel stays on your computer.</li>
+            <li data-i18n="wizard.cf.never">Never point the tunnel at port 4321 or at the panel. The gate forwards only bot replies.</li>
+          </ol>
+        </details>
+        <div class="label"><span data-i18n="wizard.copyInstruction">COPY INSTRUCTION</span></div>
+        <pre id="botInstruction" class="bot-block" translate="no"></pre>
+        <button type="button" id="copyInstruction" class="btn ghost small" data-i18n="wizard.copyInstruction">COPY INSTRUCTION</button>
+        <div class="label"><span data-i18n="wizard.copyJson">COPY EXPECTED JSON</span></div>
+        <pre id="botSample" class="bot-block" translate="no"></pre>
+        <button type="button" id="copyJson" class="btn ghost small" data-i18n="wizard.copyJson">COPY EXPECTED JSON</button>
+        <label class="bots-url"><span data-i18n="wizard.host">Chat host</span> <small class="muted" data-i18n="wizard.hostHint">With no @mention in the office chat, this member replies.</small>
+          <span class="office-key-new"><select id="chatHost" class="field"></select><button type="button" id="chatHostBtn" class="btn ghost small" data-i18n="ui.save">SAVE</button></span></label>
         <ul id="officeBotList" class="office-key-list"></ul>
+        <div id="botCopyBox" class="bot-copy" hidden>
+          <span data-i18n="wizard.copyTo">Copy to another office</span>
+          <select id="botCopyDest" class="field"></select>
+          <label class="bot-copy-key"><input type="checkbox" id="botCopyKey"> <span data-i18n="wizard.copyKey">Also copy the webhook key</span></label>
+          <button type="button" id="botCopyGo" class="btn ghost small" data-i18n="wizard.copyGo">COPY BOT</button>
+        </div>
         <div class="bot-new">
           <input id="botName" class="field" maxlength="40" placeholder="bot name, e.g. Radar" data-i18n-placeholder="ui.of.botNamePh" autocomplete="off">
+          <input id="botRole" class="field" maxlength="60" placeholder="role, e.g. Researcher" data-i18n-placeholder="wizard.rolePh" autocomplete="off">
           <select id="botAvatar" class="field" title="Its character in the office" data-i18n-title="ui.of.botAvatarTitle">
             <option value="lider" data-i18n="ui.avatar.lider">Leader</option><option value="elegido" data-i18n="ui.avatar.elegido">Chosen one</option><option value="piloto" data-i18n="ui.avatar.piloto">Pilot</option>
             <option value="capitana" data-i18n="ui.avatar.capitana">Captain</option><option value="operador" data-i18n="ui.avatar.operador">Operator</option><option value="sabia" data-i18n="ui.avatar.sabia">Sage</option>
@@ -354,6 +402,8 @@
   <script src="/escenas.js"></script>
   <script src="/nave.js"></script>
   <script src="/editorial.js"></script>
+  <script src="/cierre-textos.js"></script>
+  <script src="/cierre.js"></script>
   <script src="/app.js"></script>
 </body>
 </html>

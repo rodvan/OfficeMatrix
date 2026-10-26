@@ -1,5 +1,6 @@
 // Puerta pública para los bots externos (Grok Bots). El túnel de Cloudflare apunta SOLO aquí, nunca a la app:
-// no sirve el panel, ni misiones, ni archivos. Solo acepta dos cosas y las reenvía al servidor local:
+// no sirve el panel, ni misiones, ni archivos. Solo acepta tres cosas:
+//   GET  /bots/health                      comprobación del asistente (no reenvía nada; no lleva secretos)
 //   POST /bots/r/<token>                   respuesta de un turno (token de un solo uso)        → /api/bots/respuesta/<token>
 //   POST /bots/o/<oficina>/<llave_agente>  un bot inicia algo en su oficina (llave om_<oficina>_…) → /api/bots/mensaje
 // Todo lo demás: 404. Cuerpo de 1 MiB como máximo, solo JSON o texto, y un límite de peticiones por IP.
@@ -24,9 +25,10 @@ const reply = (res, status, body) => {
 };
 
 function route(method, url) {
-  if (method !== 'POST') return null;
   const parts = url.split('?')[0].split('/').filter(Boolean);
   if (parts[0] !== 'bots') return null;
+  if (method === 'GET' && parts[1] === 'health' && parts.length === 2) return { health: true };
+  if (method !== 'POST') return null;
   if (parts[1] === 'r' && parts.length === 3 && TOKEN_RE.test(parts[2])) return { path: `/api/bots/respuesta/${parts[2]}` };
   if (parts[1] === 'o' && parts.length === 4 && OFFICE_RE.test(parts[2]) && KEY_RE.test(decodeURIComponent(parts[3]))) {
     return { path: `/api/bots/mensaje?oficina=${parts[2]}`, auth: `Bearer ${decodeURIComponent(parts[3])}` };
@@ -44,6 +46,8 @@ function createGate({ target = TARGET } = {}) {
     const recent = (hits.get(ip) || []).filter(t => now - t < RATE.window);
     if (recent.length >= RATE.max) return reply(res, 429, { error: t('gate.tooMany') });
     hits.set(ip, [...recent, now]);
+    // La comprobación no reenvía nada al panel y no dice nada de oficinas, llaves ni misiones.
+    if (r.health) return reply(res, 200, { ok: true, servicio: 'officematrix-bots' });
     const type = String(req.headers['content-type'] || 'text/plain');
     if (!/^(application\/json|text\/plain)/i.test(type)) return reply(res, 415, { error: t('gate.onlyJson') });
     const chunks = [];

@@ -37,3 +37,4 @@ docs/simulaciones/index.html
 # Accesos directos que crea el instalador
 iniciar-officematrix.cmd
 iniciar-officematrix.sh
+acceso-remoto.json

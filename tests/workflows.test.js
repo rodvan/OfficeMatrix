@@ -71,7 +71,7 @@ const home = fs.mkdtempSync(path.join(os.tmpdir(), 'officematrix-wf-'));
 const fake = path.join(__dirname, 'helpers', 'fake-agent.js');
 const agent = id => ({ id, name: id.toUpperCase(), role: 'Probador', color: '#fff', cmd: 'node', stream: 'text', args: [fake, id, 'paralelo', 'text', '{prompt}'] });
 fs.writeFileSync(path.join(home, 'agents.json'), JSON.stringify({
-  agents: [agent('p1'), agent('p2'), agent('p3')], maxRounds: 3, minScore: 9, turnTimeoutMinutes: 1, idleTimeoutMinutes: 0,
+  agents: [agent('p1'), agent('p2'), agent('p3')], maxRounds: 3, minScore: 9, turnTimeoutMinutes: 1, relatorMinutes: 0, idleTimeoutMinutes: 0,
 }));
 fs.mkdirSync(path.join(home, 'memoria'), { recursive: true });
 process.env.OFFICEMATRIX_HOME = home;

@@ -10,7 +10,7 @@
 
 [![Licencia: Apache-2.0](https://img.shields.io/badge/Licencia-Apache_2.0-00FF66?style=for-the-badge&logo=apache&logoColor=white)](LICENSE)
 [![Node.js >= 18](https://img.shields.io/badge/Node.js-%3E%3D18%20(Cero%20Deps)-10A37F?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org)
-[![Pruebas: 183 en Verde](https://img.shields.io/badge/Pruebas-183%20en%20Verde-4F8DF5?style=for-the-badge&logo=checkmarx&logoColor=white)](#-pruebas-y-desarrollo)
+[![Pruebas: 212 en Verde](https://img.shields.io/badge/Pruebas-212%20en%20Verde-4F8DF5?style=for-the-badge&logo=checkmarx&logoColor=white)](#-pruebas-y-desarrollo)
 [![Suscripciones Flat-Rate](https://img.shields.io/badge/CLIs-Suscripciones%20Oficiales-D0704F?style=for-the-badge)](#-instalación-rápida-en-3-pasos)
 [![Creado por Cerebro Digital](https://img.shields.io/badge/Por-Cerebro%20Digital-7c5cff?style=for-the-badge)](https://github.com/rodvan)
 
@@ -169,6 +169,26 @@ flowchart TD
 
 ---
 
+## 📋 Informe de cierre (Closing report)
+
+Cuando una misión termina, por la causa que sea, la pestaña **Reportes** abre con un informe de cierre que se entiende sin ser programador:
+
+- **Un semáforo y una frase:** en qué terminó (aprobada, estancada, detenida por ti…), reescrita en palabras llanas por el agente con mejor nota.
+- **Números que calcula la app, no los agentes:** archivos, líneas, pruebas escritas, tiempo, tokens y coste, y una mini gráfica de las notas por ronda.
+- **El pedido punto por punto**, qué se logró, qué queda pendiente (lo puede hacer otra ronda o lo tienes que hacer tú) y los riesgos.
+- **Terminado = aplicado:** el informe dice si los cambios ya están en la app que usas o solo en la carpeta de la misión, y muestra los pasos para pasarlos. Nada se copia solo.
+- **Sin paradas en silencio:** si la nota deja de subir, el equipo recibe una ronda de cierre automática con lo pendiente. Si aun así no termina, **▶ Continuar hasta terminar** queda arriba del informe, con lo que falta ya escrito. El tope duro es el límite de rondas de la misión, que eliges tú.
+- **Misiones antiguas:** tienen el botón **Generar informe de cierre**. Cada informe se guarda en `.office/CIERRE.md` y se puede exportar.
+
+El informe habla el idioma del pedido (inglés por defecto). Las capturas son de la interfaz en inglés.
+
+<p align="center">
+  <img src="docs/img/cierre-1440.png" alt="Informe de cierre a 1440 px: semáforo, veredicto, estado en la app en vivo y cifras" width="720" />
+  <img src="docs/img/cierre-390.png" alt="Informe de cierre en un móvil de 390 px" width="200" />
+</p>
+
+---
+
 ## 🕶️ La Cubierta de Mando y Arquetipos
 
 Alterna entre el **Puente de Mando Isométrico** y la **Vista de Telemetría** con el botón superior en la barra de navegación.
@@ -183,6 +203,21 @@ Alterna entre el **Puente de Mando Isométrico** y la **Vista de Telemetría** c
 | <img src="public/nave/iso/piloto-1.png" width="40" alt="Piloto" onerror="this.style.display='none'"/> | **La Piloto** (`piloto`) | Kimi / Local | `#4F8DF5` | Razonamiento multilingüe, análisis de contexto largo e investigación. |
 | <img src="public/nave/iso/operador-1.png" width="40" alt="Operador" onerror="this.style.display='none'"/> | **El Operador** (`operador`) | Sistema | `#00FF66` | Telemetría en vivo, gestión de turnos y orquestación. |
 | <img src="public/nave/iso/sabia-1.png" width="40" alt="Sabia" onerror="this.style.display='none'"/> | **La Sabia** (`sabia`) | Cerebro Compartido | `#F5B942` | Guardiana del conocimiento: se ilumina cuando se añade sabiduría a `memoria/`. |
+
+---
+
+## 💬 Habla con tu equipo
+
+No todo tiene que ser una misión. Cada oficina tiene una pestaña **Chat** junto a las misiones.
+
+- En la sala están las CLI de esa oficina y sus Grok Bots, cada uno con su personaje.
+- Escribe `@grok` o `@Radar`. El autocompletado ofrece a los miembros. Solo contestan las personas que mencionas, en el orden en que las nombras, y cada una ve las respuestas que ya se dieron.
+- Si no mencionas a nadie, contesta el anfitrión de la oficina. Lo eliges en el ⚙ de la oficina, en la sección de Grok Bots.
+- Una CLI contesta con un turno corto de solo lectura: no edita los archivos de la oficina. Un Grok Bot contesta por su webhook con `tipo` `chat`, y la respuesta vuelve por `responder_a`.
+- **Convertir en misión** rellena el compositor con un título y un brief a partir de las líneas que marcaste. Puedes editarlos. Enviar es lo que arranca el ciclo.
+- Una respuesta lenta o fallida muestra el diagnóstico y el chat sigue usable.
+
+Para conectar un bot, abre el ⚙ de la oficina y sigue la lista en vivo. El paso a paso, incluido el túnel de Cloudflare (el servicio es solo `http://localhost:4323`), está en [docs/es/GROK-BOTS.md](docs/es/GROK-BOTS.md). Guía en inglés: [docs/GROK-BOTS.md](docs/GROK-BOTS.md).
 
 ---
 
@@ -259,7 +294,7 @@ La CLI oficial Kimi Code (`kimi`) admite autenticación OAuth mediante código d
 Mantenemos una batería automatizada rigurosa con cero dependencias externas:
 
 ```bash
-# Ejecutar las pruebas unitarias y de integración (183, sin dependencias)
+# Ejecutar las pruebas unitarias y de integración (212, sin dependencias)
 npm test
 
 # Escaneo de higiene y privacidad antes de publicar

@@ -15,7 +15,7 @@ fs.writeFileSync(path.join(home, 'agents.json'), JSON.stringify({
     { ...agent('pobre', 'Pobre', 'sin-saldo', 'text'), enabled: false }, { ...agent('colgado', 'Colgado', 'colgado', 'text'), enabled: false },
     ...[['meseta1', 'meseta'], ['meseta2', 'meseta'], ['baja1', 'baja'], ['baja2', 'baja'], ['cortado', 'cortado']].map(([id, g]) => ({ ...agent(id, id[0].toUpperCase() + id.slice(1), g, 'text'), enabled: false })),
   ],
-  maxRounds: 3, minScore: 9, autoMaxRounds: 4, turnTimeoutMinutes: 1, idleTimeoutMinutes: 0.05,
+  maxRounds: 3, minScore: 9, autoMaxRounds: 4, turnTimeoutMinutes: 1, relatorMinutes: 0, idleTimeoutMinutes: 0.05,
 }));
 fs.mkdirSync(path.join(home, 'memoria'), { recursive: true });
 fs.writeFileSync(path.join(home, 'memoria', 'lecciones.md'), '# Lecciones aprendidas\n\n- Lección base.\n');
@@ -460,4 +460,28 @@ test('aceptar misión (§2.1 a): solo una detenida sin aprobar, y no queda como 
   await waitIdle(closed.id);
   assert.strictEqual((await api(`/api/chats/${closed.id}`)).body.outcome, 'ok');
   assert.strictEqual((await api(`/api/chats/${closed.id}/accept`, { method: 'POST' })).status, 409, 'una misión aprobada no se «acepta»');
+});
+
+test('ronda de cierre: meseta con objeciones abiertas arma directivas numeradas y continúa automáticamente', async () => {
+  const { body: chat } = await api('/api/chats', {
+    method: 'POST',
+    body: JSON.stringify({
+      text: 'Misión con pendientes',
+      config: { mode: 'auto', maxRounds: 4, team: [{ id: 'meseta1' }, { id: 'meseta2' }] },
+    }),
+  });
+  // Añadir una objeción abierta de usuario
+  await api(`/api/chats/${chat.id}/debate`, {
+    method: 'POST',
+    body: JSON.stringify({ text: 'Corregir espaciado de botones' }),
+  });
+  await waitIdle(chat.id);
+  const { body: detail } = await api(`/api/chats/${chat.id}`);
+  const msgs = detail.messages || [];
+  const cierreMsg = msgs.find(m => m.kind === 'system' && m.rondaCierre);
+  assert.ok(cierreMsg, 'se activó la ronda de cierre');
+  assert.match(cierreMsg.text, /Ronda de cierre activada tras meseta/);
+  assert.match(cierreMsg.text, /1\. Objeción/);
+  const turnCount = msgs.filter(m => m.kind === 'agent').length;
+  assert.ok(turnCount > 4, `continuó sola ejecutando ${turnCount} turnos (> 4)`);
 });

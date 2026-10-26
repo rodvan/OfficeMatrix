@@ -16,7 +16,7 @@ fs.writeFileSync(path.join(home, 'agents.json'), JSON.stringify({
   agents: [
     fakeAgent('claude', 'claude', 'ok'), fakeAgent('codex', 'codex', 'ok', ['exec']), fakeAgent('gemini', 'agy', 'sin-saldo'), fakeAgent('grok', 'grok', 'ok'),
   ],
-  maxRounds: 1, minScore: 9, turnTimeoutMinutes: 1, idleTimeoutMinutes: 0,
+  maxRounds: 1, minScore: 9, turnTimeoutMinutes: 1, relatorMinutes: 0, idleTimeoutMinutes: 0,
 }));
 const CANARIO_EDIFICIO = `CANARIO-edificio-${crypto.randomBytes(4).toString('hex')}`;
 const CANARIO_B = `CANARIO-b-${crypto.randomBytes(4).toString('hex')}`;

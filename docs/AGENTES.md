@@ -62,6 +62,11 @@ siempre con `text`; un lector propio solo añade detalle a la burbuja.
    acceptEdits`, `--sandbox workspace-write`, `--always-approve`…). Prefiere el que limita la escritura a la carpeta actual.
 3. **Inicio de sesión hecho antes**, en tu terminal. La oficina no puede responder a un navegador ni a un código.
 
+**En el chat de la oficina, la CLI solo lee.** Para un turno de chat, OfficeMatrix quita los flags de escritura de las
+CLIs conocidas (`claude`: `--permission-mode plan` y `--disallowedTools Write,Edit,MultiEdit,NotebookEdit,Bash`; `codex`:
+`--sandbox read-only`; `grok` y `agy`: sin autoaprobar). Para otra CLI, pon un `"chatArgs"` opcional: sustituye a `args`
+solo en el chat.
+
 ## 2. Probar un agente nuevo
 
 1. En una terminal, dentro de una carpeta vacía, ejecuta a mano exactamente lo que pondrás en `args`:

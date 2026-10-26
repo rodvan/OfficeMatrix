@@ -34,7 +34,7 @@ cd OfficeMatrix
 node --check server.js
 node --check public/app.js
 
-# 3. Run the automated test suite (183 tests, zero subscription cost)
+# 3. Run the automated test suite (212 tests, zero subscription cost)
 npm test
 
 # 4. Check repository publication hygiene (no secrets, no private data)
@@ -87,7 +87,7 @@ $env:DEMO_MODO="consejo"; node tests/helpers/demo-server.js 4400 180
 ### 2. Pruebas y Verificación
 
 ```bash
-# Ejecutar la suite completa de pruebas (183 pruebas en verde)
+# Ejecutar la suite completa de pruebas (212 pruebas en verde)
 npm test
 
 # Escaneo de seguridad y privacidad antes de publicar

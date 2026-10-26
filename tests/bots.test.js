@@ -14,7 +14,7 @@ const home = fs.mkdtempSync(path.join(os.tmpdir(), 'officematrix-bots-'));
 const fake = path.join(__dirname, 'helpers', 'fake-agent.js');
 fs.writeFileSync(path.join(home, 'agents.json'), JSON.stringify({
   agents: [{ id: 'cli', name: 'CLI', role: 'Probador', color: '#fff', cmd: 'node', stream: 'text', args: [fake, 'cli', 'ok', 'text', '{prompt}'] }],
-  maxRounds: 1, minScore: 9, turnTimeoutMinutes: 0.03, idleTimeoutMinutes: 0, // 1,8 s: el bot mudo caduca rápido
+  maxRounds: 1, minScore: 9, turnTimeoutMinutes: 0.03, relatorMinutes: 0, idleTimeoutMinutes: 0, // 1,8 s: el bot mudo caduca rápido
 }));
 process.env.OFFICEMATRIX_HOME = home;
 process.env.OFFICEMATRIX_CONFIG = path.join(home, 'agents.json');
@@ -79,7 +79,12 @@ test('añadir bots: la API nunca devuelve la URL ni la llave', async () => {
 
 test('ping de ida y vuelta (firma Bearer) por la puerta pública', async () => {
   const r = await api('/api/oficinas/grokeros/bots/critico/probar', { method: 'POST', body: '{}' });
-  assert.deepStrictEqual(r.body, { enviado: true, status: 202, error: null });
+  assert.strictEqual(r.body.enviado, true);
+  assert.strictEqual(r.body.status, 202);
+  assert.strictEqual(r.body.error, null);
+  assert.strictEqual(r.body.texto, 'pong');
+  assert.strictEqual(r.body.pong, true);
+  assert.ok(r.body.ms >= 0 && r.body.ms < 10000);
   for (let i = 0; i < 50 && !(await api('/api/oficinas/grokeros/bots')).body.find(b => b.id === 'critico').ultimaRespuesta; i++) await new Promise(r => setTimeout(r, 50));
   assert.ok((await api('/api/oficinas/grokeros/bots')).body.find(b => b.id === 'critico').ultimaRespuesta, 'el bot respondió');
   assert.ok(received.some(x => x.url === '/bearer' && x.ok && x.body.tipo === 'ping'));
@@ -125,8 +130,11 @@ test('un bot que no responde: SIN RESPUESTA DEL BOT y el ciclo no se cuelga', as
   assert.strictEqual(t.failure.label, 'NO REPLY FROM THE BOT');
 });
 
-test('la puerta: solo /bots/r y /bots/o; el resto 404; llave mala 401; un bot con llave crea una misión en SU oficina', async () => {
-  for (const [method, p] of [['GET', '/'], ['POST', '/api/chats'], ['GET', '/raw/x/HANDOFF.md'], ['GET', '/bots/r/' + 'z'.repeat(43)], ['POST', '/index.html']]) {
+test('la puerta: /bots/health, /bots/r y /bots/o; el resto 404; llave mala 401; un bot con llave crea una misión en SU oficina', async () => {
+  const health = await fetch(gateBase + '/bots/health');
+  assert.strictEqual(health.status, 200);
+  assert.deepStrictEqual(await health.json(), { ok: true, servicio: 'officematrix-bots' });
+  for (const [method, p] of [['GET', '/'], ['POST', '/api/chats'], ['GET', '/raw/x/HANDOFF.md'], ['GET', '/bots/r/' + 'z'.repeat(43)], ['POST', '/index.html'], ['GET', '/bots/health/extra'], ['POST', '/bots/health']]) {
     assert.strictEqual((await fetch(gateBase + p, { method, headers: { 'content-type': 'application/json' }, ...(method === 'POST' ? { body: '{}' } : {}) })).status, 404, `${method} ${p}`);
   }
   const post = (p, body) => fetch(gateBase + p, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });

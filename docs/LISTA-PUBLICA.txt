@@ -8,6 +8,7 @@ SECURITY.md
 agents.example.json
 docs/AGENTES.md
 docs/AGENTS.md
+docs/CIERRE.md
 docs/DECISIONES.md
 docs/EDITORIAL.md
 docs/FOR-AGENTS.md
@@ -28,6 +29,8 @@ docs/es/EDITORIAL.md
 docs/es/GROK-BOTS.md
 docs/es/INSTALAR.md
 docs/es/README.md
+docs/img/cierre-1440.png
+docs/img/cierre-390.png
 docs/img/en-1440.png
 docs/img/en-390.png
 docs/img/escena.gif
@@ -44,6 +47,7 @@ lib/acceso-local.js
 lib/adjuntos.js
 lib/bots.js
 lib/brief.js
+lib/cierre.js
 lib/contexto.js
 lib/cycle.js
 lib/debate.js
@@ -72,6 +76,8 @@ om.js
 package.json
 public/app.js
 public/charts.js
+public/cierre-textos.js
+public/cierre.js
 public/editorial.js
 public/escenas.js
 public/i18n.js
@@ -530,6 +536,7 @@ public/oficina/tomas-6.png
 public/primeros-pasos.js
 public/style.css
 puerta-bots.js
+scripts/capturar-cierre.js
 scripts/comprobar-clis.js
 scripts/frontera-crear.ps1
 scripts/frontera-quitar.ps1
@@ -542,6 +549,8 @@ tests/acceso-local.test.js
 tests/adjuntos.test.js
 tests/bots.test.js
 tests/ciclo.test.js
+tests/cierre-ui.test.js
+tests/cierre.test.js
 tests/editorial-ui.test.js
 tests/editorial.test.js
 tests/escena-oficina.test.js
@@ -583,6 +592,7 @@ tests/oficinas.test.js
 tests/primeros-pasos.test.js
 tests/publicacion.test.js
 tests/robustez.test.js
+tests/ronda-cierre.test.js
 tests/saturado.test.js
 tests/simulaciones.test.js
 tests/streams.test.js

@@ -26,7 +26,7 @@ const home = fs.mkdtempSync(path.join(os.tmpdir(), 'officematrix-saturado-'));
 const fake = path.join(__dirname, 'helpers', 'fake-agent.js');
 fs.writeFileSync(path.join(home, 'agents.json'), JSON.stringify({
   agents: [{ id: 'claude', name: 'Claude', role: 'Probador', color: '#fff', cmd: 'node', stream: 'claude', args: [fake, 'claude', 'saturado', 'claude', '{prompt}'] }],
-  maxRounds: 1, minScore: 9, turnTimeoutMinutes: 1, idleTimeoutMinutes: 0,
+  maxRounds: 1, minScore: 9, turnTimeoutMinutes: 1, relatorMinutes: 0, idleTimeoutMinutes: 0,
 }));
 process.env.OFFICEMATRIX_HOME = home;
 process.env.OFFICEMATRIX_CONFIG = path.join(home, 'agents.json');

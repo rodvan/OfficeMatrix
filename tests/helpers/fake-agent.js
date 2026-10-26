@@ -11,6 +11,40 @@ const fs = require('fs');
 const path = require('path');
 
 const [id, script, format] = process.argv.slice(2);
+// Turno del relator (.office/relator.md): solo devuelve el JSON del informe, sin tocar el contador ni archivos.
+// FAKE_RELATOR=tocar cambia un archivo de trabajo (el servidor debe descartar el relato); =basura no devuelve JSON.
+if (/\.office\/relator\.md/.test(String(process.argv[5] || ''))) {
+  if (process.env.FAKE_RELATOR === 'tocar') fs.appendFileSync('trabajo.txt', 'el relator no debía tocar esto\n');
+  // Relata en el idioma de su encargo, como un agente real (el brief va en el idioma del pedido).
+  let es = false;
+  try { es = /Eres el relator/.test(fs.readFileSync(path.join('.office', 'relator.md'), 'utf8')); } catch {}
+  const relato = process.env.FAKE_RELATOR === 'basura' ? 'Hecho, todo bien.' : '```json\n' + JSON.stringify(es ? {
+    frase: `Terminado: ${id} lo cuenta en palabras llanas`,
+    logros: [{ texto: 'El trabajo de prueba quedó guardado', evidencia: ['trabajo.txt'] }],
+  } : {
+    frase: `Done: ${id} tells it in plain words`,
+    logros: [{ texto: 'The sample work was saved', evidencia: ['trabajo.txt'] }],
+  }) + '\n```';
+  console.log(format === 'claude' ? JSON.stringify({ type: 'result', subtype: 'success', is_error: false, result: relato }) : relato);
+  return;
+}// Chat de oficina: el servidor lo lanza con el directorio de trabajo en un cajón temporal, no en la oficina.
+// Escribe aquí a propósito. Si el cajón es el bueno, ese archivo no aparece en la oficina.
+if (script === 'chat') {
+  fs.writeFileSync('intento-de-escritura.txt', 'no debe salir del cajon');
+  const prompt = fs.existsSync('chat-prompt.md') ? fs.readFileSync('chat-prompt.md', 'utf8') : '';
+  const flat = prompt.replace(/\s+/g, ' ');
+  // La cabeza trae la memoria; la cola, la respuesta anterior. Un corte solo al principio
+  // esconde lo que el compañero acaba de decir cuando el historial ya es largo.
+  const head = flat.slice(0, 320);
+  const tail = flat.slice(-400);
+  const reply = `chat:${id}:${flat.includes('Office memory') ? 'mem' : 'nomem'}:${head}${tail === head ? '' : ' … ' + tail}`;
+  // Con format=claude contesta como la CLI real: líneas stream-json, no texto plano.
+  if (format === 'claude') {
+    for (const e of [{ type: 'system', subtype: 'init', cwd: process.cwd() }, { type: 'assistant', message: { content: [{ type: 'text', text: reply }] } },
+      { type: 'result', subtype: 'success', is_error: false, result: reply }]) process.stdout.write(JSON.stringify(e) + '\n');
+  } else process.stdout.write(reply + '\n');
+  process.exit(0);
+}
 // El retardo también llega como argumento "delay=<ms>": el entorno de un empleado de oficina va con lista blanca.
 const argDelay = Number((process.argv.find(a => /^delay=\d+$/.test(a)) || '').slice(6)) || 0;
 const counterFile = path.join('.office', `fake-${id}.count`);

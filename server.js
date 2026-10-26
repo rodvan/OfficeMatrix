@@ -3,12 +3,13 @@
 // Sin dependencias: solo módulos de Node. La lógica pura vive en lib/ (y tiene tests en tests/).
 const http = require('http');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const { spawn, execSync } = require('child_process');
 
 const { createStreamParser, sayText } = require('./lib/streams');
 const { parseReport } = require('./lib/protocol');
-const { addObjections, applyReplies, pendingFor, blocking, setObjectionStatus } = require('./lib/debate');
+const { addObjections, applyReplies, pendingFor, blocking, setObjectionStatus, isEnvironmentBlock } = require('./lib/debate');
 const memory = require('./lib/memory');
 const { snapshot, diffSnapshots, workChanges, textDiffs } = require('./lib/snapshot');
 const { computeAgentStats } = require('./lib/stats');
@@ -30,8 +31,10 @@ const { createManifests, controlDir } = require('./lib/manifiestos');
 const acceso = require('./lib/acceso-local');
 const hoy = require('./lib/hoy');
 const { createBots, MAX_BODY: BOT_MAX_BODY } = require('./lib/bots');
+const { createOfficeChat, redact, recipients, draftMission, chatPrompt, memoryExcerpt, readOnlyArgs, slug: chatSlug } = require('./lib/chat-oficina');
 const editorialLib = require('./lib/editorial');
 const { createViralHunt } = require('./lib/viralhunt');
+const cierreLib = require('./lib/cierre');
 
 const ROOT = __dirname;
 const DATA = process.env.OFFICEMATRIX_HOME ? path.resolve(process.env.OFFICEMATRIX_HOME) : ROOT;
@@ -51,6 +54,12 @@ const CONTROL_DIR = controlDir(DATA); // manifiestos y entrantes; OFFICEMATRIX_C
 const traspasos = createTraspasos(DATA, oficinas, CONTROL_DIR); // el único cruce de memoria entre oficinas (lib/traspaso.js)
 const manifiestos = createManifests(DATA, CONTROL_DIR);
 const bots = createBots(DATA, oficinas); // Grok Bots externos por webhook (lib/bots.js; la puerta pública es puerta-bots.js)
+const officeChat = createOfficeChat(oficinas); // chat de oficina, aparte de las misiones (lib/chat-oficina.js)
+const chatBusy = new Set();
+const CHAT_CLI_MS = Number(process.env.OFFICEMATRIX_CHAT_CLI_MS) || 20000;
+const CHAT_BOT_MS = Number(process.env.OFFICEMATRIX_CHAT_BOT_MS) || 20000;
+// Orden fija y sin metacaracteres: el texto del usuario va en un archivo del cajón, no en la línea de órdenes.
+const CHAT_ARGV = 'Read the file chat-prompt.md in the current directory and reply with the chat message only. Do not edit, create or delete files.';
 const editorial = editorialLib.createEditorial(oficinas); // Editorial continua: regla, tandas, bandeja y gusto (lib/editorial.js)
 const viralhunt = createViralHunt(oficinas); // el token de la oficina solo lo usa el servidor (lib/viralhunt.js)
 // La cookie no está activa en contexto. OFFICEMATRIX_COOKIE=1 la exige en /api y /raw (prueba de S1F, sin activar la frontera).
@@ -223,6 +232,7 @@ function listChats(officeId = EDIFICIO) {
           outcome: chatOutcome(c, running.has(c.id)),
           stopReason: stopReason(c, running.has(c.id)),
           accepted: !running.has(c.id) && missionAccepted(c),
+          cierre: cierreLib.resumen(path.join(base, d.name)),
         };
       } catch { return null; }
     })
@@ -465,6 +475,161 @@ async function runBotTurn(chatId, agent, { timeoutMin, round, onEvent, briefFile
   return { code: 0, stdout: texto, stderr: '', report: texto, streaming: false, usage: null, toolCounts: { write: 1 }, toolErrors: 0, timedOut: false, idle: false, aporte: rel };
 }
 
+// ---------- Chat de oficina (no es una misión) ----------
+// Una CLI contesta en un cajón temporal: su directorio de trabajo no es la oficina, así que un
+// archivo que cree ahí no toca el proyecto. Un bot contesta por su webhook con tipo "chat".
+function chatMembers(office) {
+  const cfg = configFor(office);
+  const clis = cfg.agents.filter(a => !a.bot).map(a => ({
+    tipo: 'cli', id: a.id, sceneId: a.id, nombre: a.name, puesto: a.role || '', avatar: a.avatar || '', mencion: chatSlug(a.name), color: a.color,
+  }));
+  const botMembers = bots.list(office).map(b => ({
+    tipo: 'bot', id: b.id, sceneId: `bot-${b.id}`, nombre: b.nombre, puesto: b.puesto || '', avatar: b.avatar || '', mencion: chatSlug(b.nombre), color: b.color, sinLlave: !!b.sinLlave,
+  }));
+  return [...clis, ...botMembers];
+}
+
+function chatFailure(stderr, extra = {}) {
+  return classifyFailure({ code: 1, stdout: '', stderr, report: '', timedOut: false, ...extra }) || { kind: 'fallo', label: i18n.t('fail.fallo.label'), detail: String(stderr || '').slice(0, 200), hint: i18n.t('fail.fallo.hint') };
+}
+
+async function runChatBot(office, quien, mensaje, history) {
+  const secrets = bots.secretValues(office);
+  if (quien.sinLlave) return { texto: '', fallo: chatFailure(`[bot-webhook] ${i18n.t('bots.err.noWebhook')}`) };
+  const ttl = CHAT_BOT_MS;
+  const turn = bots.openTurn({ chat: true, oficina: office, bot: quien.id }, ttl);
+  const responder = bots.replyUrl(turn.token);
+  if (!responder) { turn.cancel(); return { texto: '', fallo: chatFailure(i18n.t('server.bot.noTunnel')) }; }
+  const payload = {
+    tipo: 'chat', oficina: office, bot: { id: quien.id, nombre: quien.nombre, puesto: quien.puesto },
+    mensaje: redact(mensaje, secrets),
+    historial: history.slice(-8).map(m => ({ de: m.autor?.nombre || '?', texto: m.texto })),
+    responder_a: responder, caduca: new Date(Date.now() + ttl).toISOString(), formato: i18n.t('server.chat.format'),
+  };
+  const sent = await bots.send(office, quien.id, payload);
+  if (!sent.ok) {
+    turn.cancel();
+    return { texto: '', fallo: chatFailure(i18n.t('server.bot.rejected', { name: quien.nombre, why: sent.status ? `HTTP ${sent.status}` : sent.error })) };
+  }
+  const reply = await Promise.race([turn.wait, new Promise(r => { const timer = setTimeout(() => r(null), ttl); timer.unref?.(); })]);
+  if (!reply) {
+    turn.cancel();
+    return { texto: '', fallo: chatFailure(i18n.t('server.chat.noReply', { name: quien.nombre, s: Math.max(1, Math.round(ttl / 1000)) })) };
+  }
+  const texto = redact(String(reply.texto || '').trim(), secrets);
+  try { bots.touch(office, quien.id, { ultimaRespuesta: new Date().toISOString() }); } catch { /* la marca es opcional */ }
+  if (!texto) return { texto: '', fallo: chatFailure(i18n.t('server.chat.empty', { name: quien.nombre })) };
+  return { texto, fallo: null };
+}
+
+function runChatCli(office, quien, mensaje, history) {
+  const agent = configFor(office).agents.find(a => a.id === quien.id && !a.bot);
+  if (!agent) return Promise.resolve({ texto: '', fallo: chatFailure(i18n.t('server.chat.empty', { name: quien.nombre })) });
+  const prompt = chatPrompt({
+    nombre: quien.nombre,
+    historial: history.slice(-8).map(m => ({ de: m.autor?.nombre || '?', texto: m.texto })),
+    memoria: memoryExcerpt(oficinas.dirs(office).memoria),
+    mensaje,
+  });
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), 'om-chat-'));
+  fs.writeFileSync(path.join(sandbox, 'chat-prompt.md'), prompt);
+  const base = Array.isArray(agent.chatArgs) ? { ...agent, args: agent.chatArgs } : agent;
+  const args = readOnlyArgs(agent.stream, modelos.argsFor(base, modelos.pick(agent))).map(a => String(a).replaceAll('{prompt}', CHAT_ARGV));
+  const timeoutMs = CHAT_CLI_MS;
+  return new Promise(resolve => {
+    let env = { ...process.env };
+    delete env.CLAUDECODE;
+    const isWin = process.platform === 'win32';
+    const native = /(?:^|[\\/])node(?:\.exe)?$/i.test(agent.cmd) || /\.exe$/i.test(agent.cmd);
+    const proc = isWin && !native
+      ? spawn([agent.cmd, ...args.map(quoteArg)].join(' '), { cwd: sandbox, env, shell: true, windowsHide: true })
+      : spawn(agent.cmd, args, { cwd: sandbox, env, windowsHide: true });
+    proc.stdin.end();
+    // Las CLIs reales hablan en stream-json: el globo y la respuesta salen del parser, no del JSON crudo.
+    const parser = createStreamParser(agent.stream || 'text', { cwd: sandbox });
+    let stdout = '', stderr = '', timedOut = false, settled = false;
+    const finish = (code) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      fs.rmSync(sandbox, { recursive: true, force: true });
+      parser.end();
+      const texto = redact(parser.finalText(), bots.secretValues(office));
+      if (timedOut || code !== 0 || !texto) {
+        const fallo = classifyFailure({ code: code || 1, stdout, stderr, report: texto, timedOut, timeoutMinutes: timeoutMs / 60000 })
+          || chatFailure(stderr || i18n.t('server.chat.empty', { name: quien.nombre }));
+        return resolve({ texto, fallo });
+      }
+      resolve({ texto, fallo: null });
+    };
+    const timer = setTimeout(() => { timedOut = true; stderr += '\n[OfficeMatrix] Tiempo agotado.'; killTree(proc); }, timeoutMs);
+    proc.stdout.on('data', c => {
+      const text = stripAnsi(c.toString());
+      if (stdout.length < 2e5) stdout += text;
+      parser.feed(text);
+      const safe = redact(parser.usedStreaming ? parser.finalText() : stdout, bots.secretValues(office));
+      broadcast({ type: 'office-chat', oficina: office, fase: 'delta', quien: { sceneId: quien.sceneId, nombre: quien.nombre }, texto: safe.slice(-500) });
+    });
+    proc.stderr.on('data', c => { if (stderr.length < 2e4) stderr += stripAnsi(c.toString()); });
+    proc.on('error', err => { stderr += `\n${err.message}`; finish(1); });
+    proc.on('close', code => finish(code));
+  });
+}
+
+async function runOfficeChat(office, texto) {
+  if (chatBusy.has(office)) { const err = new Error(i18n.t('chat.err.busy')); err.status = 409; throw err; }
+  chatBusy.add(office);
+  try {
+    const members = chatMembers(office);
+    const secrets = bots.secretValues(office);
+    const clean = redact(String(texto || ''), secrets).trim();
+    if (!clean) { const err = new Error(i18n.t('server.error.taskRequired')); err.status = 400; throw err; }
+    const route = recipients(clean, members, officeChat.readSettings(office).anfitrion);
+    const userMsg = officeChat.append(office, { autor: { tipo: 'owner', id: 'owner', nombre: 'You' }, texto: clean, menciones: route.quienes.map(q => q.mencion) });
+    broadcast({ type: 'office-chat', oficina: office, fase: 'mensaje', mensaje: userMsg });
+    const produced = [userMsg];
+    if (!route.quienes.length) {
+      const note = officeChat.append(office, {
+        autor: { tipo: 'system', id: 'system', nombre: 'OfficeMatrix' },
+        texto: i18n.t(route.motivo === 'desconocida' ? 'chat.unknownMention' : 'chat.noHost'),
+      });
+      produced.push(note);
+      broadcast({ type: 'office-chat', oficina: office, fase: 'mensaje', mensaje: note });
+      return produced;
+    }
+    for (const quien of route.quienes) {
+      broadcast({ type: 'office-chat', oficina: office, fase: 'hablando', quien: { sceneId: quien.sceneId, nombre: quien.nombre } });
+      const history = officeChat.list(office, secrets);
+      const result = quien.tipo === 'bot' ? await runChatBot(office, quien, clean, history) : await runChatCli(office, quien, clean, history);
+      const msg = officeChat.append(office, {
+        autor: { tipo: quien.tipo, id: quien.id, nombre: quien.nombre, avatar: quien.avatar, puesto: quien.puesto, sceneId: quien.sceneId },
+        texto: redact(result.texto || '', secrets),
+        fallo: result.fallo,
+      });
+      produced.push(msg);
+      broadcast({ type: 'office-chat', oficina: office, fase: 'mensaje', mensaje: msg });
+      broadcast({ type: 'office-chat', oficina: office, fase: 'callado', quien: { sceneId: quien.sceneId } });
+    }
+    return produced;
+  } finally {
+    chatBusy.delete(office);
+  }
+}
+
+async function assistantStatus() {
+  const gate = await bots.gateUp();
+  const tunnel = await bots.tunnelUp();
+  const tunnelKey = tunnel.ok ? 'wizard.tunnel.ok' : tunnel.reason === 'missing' ? 'wizard.tunnel.missing' : tunnel.reason === 'bad' ? 'wizard.tunnel.bad' : 'wizard.tunnel.down';
+  return {
+    comprobaciones: [
+      { id: 'puerta', ok: gate.ok, clave: gate.ok ? 'wizard.gate.ok' : 'wizard.gate.down', vars: { port: gate.port } },
+      { id: 'tunel', ok: tunnel.ok, clave: tunnelKey, vars: { ms: tunnel.ms || 0, why: String(tunnel.error || tunnel.status || tunnel.reason || '') } },
+    ],
+    bloques: bots.blocks(i18n.getLang()),
+    puerto: gate.port,
+  };
+}
+
 function runAgent(chatId, agent, { timeoutMin, idleMin, round, onEvent, briefFile = 'turno.md', model = null, phase = null, folder = null }) {
   if (agent.bot) return runBotTurn(chatId, agent, { timeoutMin, round, onEvent, briefFile, phase, folder });
   return new Promise(resolve => {
@@ -483,6 +648,11 @@ function runAgent(chatId, agent, { timeoutMin, idleMin, round, onEvent, briefFil
         return resolve({ code: 1, stdout: '', stderr: msg, report: '', streaming: false, usage: null, toolCounts: {}, toolErrors: 0, timedOut: false, idle: false, padre: padres });
       }
     }
+    // Variables propias del perfil en agents.json, p. ej. una segunda cuenta de la misma CLI con su carpeta de sesión
+    // aparte ({ "GROK_HOME": "~/.grok-personal" }). "~" al inicio es la carpeta del usuario.
+    if (agent.env && typeof agent.env === 'object') {
+      for (const [k, v] of Object.entries(agent.env)) env[k] = String(v).replace(/^~(?=$|[\\/])/, require('os').homedir());
+    }
 
     const isWin = process.platform === 'win32';
     // En Windows las CLIs son .cmd/.ps1 y necesitan shell: se pasa una sola línea ya entrecomillada
@@ -493,7 +663,7 @@ function runAgent(chatId, agent, { timeoutMin, idleMin, round, onEvent, briefFil
       : spawn(agent.cmd, args, { cwd: dir, env, windowsHide: true });
     proc.officeNative = native;
     proc.stdin.end();
-    const state = running.get(chatId);
+    const state = running.get(chatId) || relatores.get(chatId); // el relator corre con el ciclo ya cerrado
     state.proc = proc;
     state.procs.add(proc); // en los modos paralelos hay varias CLIs a la vez: "Detener" las corta todas
 
@@ -693,7 +863,9 @@ async function runCycle(chatId) {
   if (cfg.workflow !== 'relevo' && team.length > 1) return runParallelCycle(chatId, { config, chat0, cfg, team });
   const projectDir = chatDir(chatId);
   const state = { proc: null, procs: new Set(), live: new Map(), stopped: false, agentId: null, progress: null, activity: '' };
+  cortarRelator(chatId);
   running.set(chatId, state);
+  registrarBase(chatId);
   const cycle = Date.now();
   const failed = new Set();
   const lastScores = {};
@@ -705,10 +877,11 @@ async function runCycle(chatId) {
 
   const activeTeam = () => team.filter(a => !failed.has(a.id));
   const openBlocking = () => blocking(readChat(chatId).debate, activeTeam().map(a => a.id)).length;
+  const openProductBlocking = () => blocking(readChat(chatId).debate, activeTeam().map(a => a.id), { excludeEnvironment: true }).length;
   const publishProgress = (round, extra = {}) => {
     state.progress = {
       mode, round, maxRounds, turn, totalTurns: maxRounds * team.length, approvalsInRow, doneInRow,
-      needed: activeTeam().length, minScore, openObjections: openBlocking(), cycleStarted: cycle, ...extra,
+      needed: activeTeam().length, minScore, openObjections: openBlocking(), openProductObjections: openProductBlocking(), cycleStarted: cycle, ...extra,
     };
     broadcast({ type: 'progress', chatId, progress: state.progress });
   };
@@ -877,11 +1050,40 @@ async function runCycle(chatId) {
       }
 
       writeHandoffStatus(projectDir, readChat(chatId), info, cycleTurns);
-      outcome = cycleOutcome({ mode, approvalsInRow, doneInRow, activeCount: activeTeam().length, blockingObjections: openBlocking() });
-      // Al cerrar una ronda completa: meseta o retroceso detienen sin aprobar (D46).
+      outcome = cycleOutcome({ mode, approvalsInRow, doneInRow, activeCount: activeTeam().length, blockingObjections: openProductBlocking() });
+      // Al cerrar una ronda completa: meseta o retroceso
       if (!outcome.finished && turn % team.length === 0) {
         const p = plateauOutcome({ turns: cycleTurns, round, expected: activeTeam().length, intervenedRounds: [...(state.intervenedRounds || [])] });
-        if (p) outcome = p;
+        if (p) {
+          if (p.reason === 'meseta' && !state.rondaCierre && round < maxRounds) {
+            // Directiva nueva del dueño: la meseta ya no termina la misión en silencio.
+            // Arma una «ronda de cierre» con las objeciones abiertas y los puntos del brief en ◐/✖ como lista numerada de directivas, y continúa sola.
+            const chatActual = readChat(chatId);
+            const deb = (chatActual.debate || []).filter(o => (o.status === 'abierta' || o.status === 'disputada') && !isEnvironmentBlock(o));
+            const ultimoPedido = (chatActual.messages || []).filter(m => m.kind === 'user' && !m.intervention).pop()?.text || '';
+            const briefInfo = cierreLib.briefDelPedido(projectDir, ultimoPedido, []);
+            const corpus = cycleTurns.map(x => `${x.text || ''}\n${x.handoffText || ''}`).join('\n');
+            const puntos = cierreLib.contrastarBrief(cierreLib.puntosDelBrief(briefInfo.texto), corpus);
+            const pendientesBrief = puntos.filter(p => p.estado === 'falta' || p.estado === 'parcial');
+            const msgTexto = cierreLib.mensajeRondaCierre({
+              idioma: cierreLib.idiomaDe(ultimoPedido),
+              ronda: round,
+              objeciones: deb,
+              puntos: pendientesBrief,
+            });
+            if (msgTexto) {
+              state.rondaCierre = true;
+              addMessage(chatId, { kind: 'system', cycle, text: msgTexto, intervention: true, rondaCierre: true });
+              state.intervened = true;
+              state.intervenedRounds = state.intervenedRounds || new Set();
+              state.intervenedRounds.add(round);
+            } else {
+              outcome = p;
+            }
+          } else {
+            outcome = p;
+          }
+        }
       }
       publishProgress(round);
       if (outcome.finished) break;
@@ -891,8 +1093,10 @@ async function runCycle(chatId) {
     const rounds = Math.ceil(turn / team.length);
     const scores = Object.entries(lastScores).map(([name, s]) => `${name} ${s ?? '?'}`).join(', ');
     const open = openBlocking();
-    const down = cycleTurns.filter(m => m.failure).map(m => `${m.agentName} (${m.failure.label.toLowerCase()})`);
-    const downNote = down.length ? i18n.t('server.notice.down', { agents: down.join(', ') }) : '';
+    // Cortado a medias (PARCIAL) no es «fuera del ciclo»: siguió y pudo aprobar después (RF4).
+    const down = cycleTurns.filter(m => m.verdict === 'ERROR').map(m => `${m.agentName} (${m.failure.label.toLowerCase()})`);
+    const cut = cycleTurns.filter(m => m.verdict === 'PARCIAL').map(m => i18n.t('server.notice.cutItem', { name: m.agentName, reason: m.failure.label.toLowerCase(), round: m.round }));
+    const downNote = `${down.length ? i18n.t('server.notice.down', { agents: down.join(', ') }) : ''}${cut.length ? i18n.t('server.notice.cut', { agents: cut.join(', ') }) : ''}`;
     let summary;
     const summaryVars = { rounds, turn, minutes, scores, downNote, maxRounds,
       open: open ? i18n.t('cycle.open', { open }) : '' };
@@ -916,8 +1120,10 @@ async function runCycle(chatId) {
     }
     running.delete(chatId);
     editorialAlCerrar(chatId);
-    broadcast({ type: 'cycle-ended', chatId, title: chat0.title, ...(ending || { outcome: 'detenido', summary: '' }) });
+    const cierre = generarCierre(chatId);
+    broadcast({ type: 'cycle-ended', chatId, title: chat0.title, ...(ending || { outcome: 'detenido', summary: '' }), ...(cierre ? { cierre: cierreLib.resumenDe(cierre) } : {}) });
     broadcast({ type: 'memory-updated', oficina: officeOfChat(chatId) });
+    relatarCierre(chatId, cierre, activeTeam(), { config });
   }
 }
 
@@ -942,7 +1148,9 @@ async function runParallelCycle(chatId, { config, chat0, cfg, team }) {
   const { workflow, maxRounds, minScore, maxParallel } = cfg;
   const projectDir = chatDir(chatId);
   const state = { proc: null, procs: new Set(), live: new Map(), briefs: new Map(), stopped: false, agentId: null, progress: null, activity: '' };
+  cortarRelator(chatId);
   running.set(chatId, state);
+  registrarBase(chatId);
   const cycle = Date.now();
   const failed = new Set();
   const lastScores = {};
@@ -1191,8 +1399,10 @@ async function runParallelCycle(chatId, { config, chat0, cfg, team }) {
     const drafts = team.filter(a => !failed.has(a.id)).map(a => ({ letter: letter(a.id), folder: folderOf(a.id), owner: a.id }))
       .sort((a, b) => a.letter.localeCompare(b.letter));
     const minutes = () => Math.round((Date.now() - cycle) / 60000);
-    const down = () => cycleTurns.filter(m => m.failure).map(m => `${m.agentName} (${m.failure.label.toLowerCase()})`);
-    const downNote = () => (down().length ? i18n.t('server.parallel.down', { agents: down().join(', ') }) : '');
+    // Cortado a medias (PARCIAL) no es «fuera del ciclo» (RF4).
+    const down = () => cycleTurns.filter(m => m.verdict === 'ERROR').map(m => `${m.agentName} (${m.failure.label.toLowerCase()})`);
+    const cut = () => cycleTurns.filter(m => m.verdict === 'PARCIAL').map(m => `${m.agentName} (${m.failure.label.toLowerCase()})`);
+    const downNote = () => `${down().length ? i18n.t('server.parallel.down', { agents: down().join(', ') }) : ''}${cut().length ? i18n.t('server.notice.cut', { agents: cut().join(', ') }) : ''}`;
     let summary, outcome;
     if (state.stopped) { summary = i18n.t('server.notice.stopped'); outcome = 'detenido'; }
     else if (drafts.length < 2) {
@@ -1201,6 +1411,7 @@ async function runParallelCycle(chatId, { config, chat0, cfg, team }) {
     } else if (workflow === 'delphi') {
       const r = await delphi(drafts);
       outcome = state.stopped ? 'detenido' : r.converged ? 'unanime' : r.plateau ? r.plateau.reason : 'agotado';
+      updateChat(chatId, c => { c.modoDetalle = { modo: 'delphi', borrador: r.best, autor: nameOf(anon[r.best]) || null, avgs: r.avgs }; });
       summary = state.stopped ? i18n.t('server.notice.stopped')
         : r.plateau ? i18n.t('server.parallel.delphiPlateau', { plateau: plateauSummary(r.plateau), best: r.best, owner: nameOf(anon[r.best]), turns: done, minutes: minutes(), downNote: downNote() })
         : i18n.t('server.parallel.delphiEnd', {
@@ -1210,6 +1421,7 @@ async function runParallelCycle(chatId, { config, chat0, cfg, team }) {
     } else {
       const r = await consejo(drafts);
       outcome = state.stopped ? 'detenido' : r.approved ? 'unanime' : r.plateau ? r.plateau.reason : 'agotado';
+      updateChat(chatId, c => { c.modoDetalle = { modo: 'consejo', borrador: 'final', autor: r.chair?.name || null, avgs: r.avgs }; });
       summary = state.stopped ? i18n.t('server.notice.stopped')
         : r.plateau ? i18n.t('server.parallel.councilPlateau', { plateau: plateauSummary(r.plateau), turns: done, minutes: minutes(), downNote: downNote() })
         : i18n.t('server.parallel.councilEnd', {
@@ -1232,8 +1444,10 @@ async function runParallelCycle(chatId, { config, chat0, cfg, team }) {
     }
     running.delete(chatId);
     editorialAlCerrar(chatId);
-    broadcast({ type: 'cycle-ended', chatId, title: chat0.title, ...(ending || { outcome: 'detenido', summary: '' }) });
+    const cierre = generarCierre(chatId);
+    broadcast({ type: 'cycle-ended', chatId, title: chat0.title, ...(ending || { outcome: 'detenido', summary: '' }), ...(cierre ? { cierre: cierreLib.resumenDe(cierre) } : {}) });
     broadcast({ type: 'memory-updated', oficina: officeOfChat(chatId) });
+    relatarCierre(chatId, cierre, team.filter(a => !failed.has(a.id)), { config, presidente: workflow === 'consejo' ? cfg.chair : null });
   }
 }
 
@@ -1398,6 +1612,82 @@ function relojEditorial(ahora = Date.now()) {
   return Promise.all(lanzadas);
 }
 
+// ---------- Informe de cierre (lib/cierre.js, RF1–RF8) ----------
+// HEAD al empezar la misión: los números del informe se cuentan contra él aunque los agentes hagan commits.
+function registrarBase(chatId) {
+  try {
+    const chat = readChat(chatId);
+    const base = cierreLib.registrarBase(chatDir(chatId), chat);
+    if (base) updateChat(chatId, c => { c.base ||= base; });
+  } catch { /* sin git: el informe usa las instantáneas de cada turno */ }
+}
+
+// La parte objetiva, sin ninguna CLI. Se guarda en .office/cierre.json y .office/CIERRE.md. Nunca rompe el cierre del ciclo.
+function generarCierre(chatId) {
+  try {
+    const dir = chatDir(chatId);
+    const chat = readChat(chatId);
+    const cierre = cierreLib.conRelato(cierreLib.construirCierre({ chat, dir, enCurso: running.has(chatId) }), chat, dir);
+    cierreLib.guardar(dir, cierre);
+    broadcast({ type: 'cierre-updated', chatId, cierre: cierreLib.resumenDe(cierre) });
+    return cierre;
+  } catch (err) {
+    try { addMessage(chatId, { kind: 'system', text: i18n.t('server.cierre.failedWhy', { error: err.message }) }); } catch {}
+    return null;
+  }
+}
+
+// Relator (RF2): con el ciclo ya cerrado, un turno corto del de mejor nota (o del presidente en Consejo) reescribe lo
+// subjetivo en palabras llanas. Solo devuelve JSON; fusionarRelato lo valida contra el disco. Si falla, tarda, cambia
+// archivos del trabajo o empieza otro ciclo mientras tanto, se queda la plantilla y el informe dice por qué. Nunca bloquea
+// el cierre ni escribe en el chat: el último mensaje del ciclo sigue siendo su resumen. relatorMinutes: 0 lo apaga.
+const relatores = new Map(); // chatId → estado mínimo para runAgent (procs), fuera de `running`: la misión ya no está en curso
+
+function cortarRelator(chatId) {
+  const st = relatores.get(chatId);
+  if (!st) return;
+  st.stopped = true;
+  for (const proc of st.procs) killTree(proc);
+}
+
+async function relatarCierre(chatId, cierre, equipo, { config = {}, presidente = null } = {}) {
+  const minutos = config.relatorMinutes ?? 3;
+  let agente;
+  try { agente = minutos > 0 && cierreLib.elegirRelator(cierre, equipo, { presidente }); } catch { return; }
+  if (!agente || relatores.has(chatId) || running.has(chatId)) return;
+  const dir = chatDir(chatId);
+  const st = { proc: null, procs: new Set(), stopped: false };
+  relatores.set(chatId, st);
+  // El relato (o el motivo por el que no lo hay) se guarda en el chat, atado a su ciclo: así sobrevive a cada
+  // regeneración del informe («Aceptar así», Exportar) y no se aplica a un ciclo posterior.
+  let ciclo = null;
+  const guardarRelato = r => {
+    updateChat(chatId, c => { c.relato = { ciclo, autor: agente.name, ...r }; });
+    generarCierre(chatId);
+  };
+  try {
+    ciclo = cierreLib.ultimoCiclo(readChat(chatId))?.id ?? null;
+    const briefFile = 'relator.md';
+    fs.writeFileSync(path.join(dir, '.office', briefFile), cierreLib.briefRelator(cierre, { minutos }));
+    broadcast({ type: 'agent-status', chatId, agentId: agente.id, status: 'working', round: 0, activity: i18n.t('server.cierre.narrating'), started: Date.now() });
+    const before = snapshot(dir);
+    const result = await runAgent(chatId, agente, {
+      timeoutMin: minutos, idleMin: Math.min(minutos, config.idleTimeoutMinutes ?? minutos), round: 0, briefFile,
+      model: modelos.pick(agente), onEvent: entry => { if (entry.kind !== 'say') appendActivity(chatId, entry); },
+    });
+    broadcast({ type: 'agent-status', chatId, agentId: agente.id, status: 'idle' });
+    if (st.stopped || running.has(chatId)) return; // empezó otro ciclo: su informe ya no es este
+    if (workChanges(diffSnapshots(before, snapshot(dir))).length) return guardarRelato({ fallo: 'tocoArchivos' });
+    if (result.code !== 0 || result.timedOut || result.idle) return guardarRelato({ fallo: 'cayo' });
+    const datos = cierreLib.leerRelato(result.report || result.stdout);
+    guardarRelato(datos ? { datos } : { fallo: 'sinJson' });
+  } catch {
+    try { if (!running.has(chatId)) guardarRelato({ fallo: 'cayo' }); } catch { /* la misión ya no existe */ }
+  } finally {
+    relatores.delete(chatId);
+  }
+}
+
 // Al cerrar una misión editorial, sus propuestas pasan a la bandeja (o reemplazan la que pidió cambios).
 function editorialAlCerrar(chatId) {
   let chat, office;
@@ -1411,6 +1701,16 @@ function editorialAlCerrar(chatId) {
       const st = editorial.estado(office);
       const t = (st.tandas || []).find(x => x.chatId === chatId);
       if (t) { t.fin = new Date().toISOString(); t.propuestas = r.creadas.length; t.descartadas = r.descartadas.length; editorial.guardarEstado(office, st); }
+      updateChat(chatId, c => {
+        c.modoDetalle = {
+          modo: 'editorial',
+          tipo: 'tanda',
+          franja: meta.franja || null,
+          creadas: r.creadas.length,
+          descartadas: r.descartadas.length,
+          temas: r.creadas.map(p => p.tema).filter(Boolean),
+        };
+      });
       oficinas.bitacora(office, `Editorial: ${r.creadas.length} propuesta(s) en la bandeja${r.descartadas.length ? `, ${r.descartadas.length} descartada(s) (${r.descartadas.map(d => d.motivo).join('; ')})` : ''}`);
     } else if (meta.tipo === 'cambios') {
       const r = fs.existsSync(path.join(dir, 'propuestas', '1', 'propuesta.json'))
@@ -1791,6 +2091,18 @@ async function handle(req, res) {
       if (req.method === 'GET') return sendJson(res, 200, { publicUrl: bots.publicUrl() });
       if (req.method === 'PUT' || req.method === 'POST') return sendJson(res, 200, { publicUrl: bots.setPublicUrl((await readBody(req)).publicUrl) });
     }
+    // Arranca la puerta en este PC, sin permisos de administrador. Si ya escucha, no lanza otra.
+    if (parts[2] === 'puerta' && parts.length === 3 && req.method === 'POST') {
+      const before = await bots.gateUp();
+      if (before.ok) return sendJson(res, 200, { ok: true, already: true, port: before.port });
+      const started = bots.startGate();
+      let up = { ok: false, port: before.port };
+      for (let i = 0; i < 20 && !up.ok; i++) {
+        await new Promise(r => setTimeout(r, 100));
+        up = await bots.gateUp();
+      }
+      return sendJson(res, up.ok ? 200 : 502, { ok: up.ok, already: false, pid: started.pid, port: up.port, error: up.ok ? null : i18n.t('bots.err.gateStart', { port: up.port }) });
+    }
   }
   // ---------- Editorial continua: regla, tanda, bandeja y token de ViralHunt (solo desde el panel) ----------
   if (parts[0] === 'api' && parts[1] === 'oficinas' && ['editorial', 'viralhunt'].includes(parts[3])) {
@@ -1872,20 +2184,69 @@ async function handle(req, res) {
       broadcast({ type: 'oficinas-updated' });
       return sendJson(res, 200, { ok: true });
     }
+    if (parts.length === 5 && parts[4] === 'asistente' && req.method === 'GET') return sendJson(res, 200, await assistantStatus());
+    if (parts.length === 6 && parts[5] === 'copiar' && req.method === 'POST') {
+      const body = await readBody(req);
+      const bot = bots.copyTo(o.id, decodeURIComponent(parts[4]), { destino: body.destino, incluirLlave: body.incluirLlave === true });
+      broadcast({ type: 'oficinas-updated' });
+      return sendJson(res, 201, bot);
+    }
+    if (parts.length === 6 && parts[5] === 'secreto' && req.method === 'POST') {
+      const bot = bots.setSecret(o.id, decodeURIComponent(parts[4]), await readBody(req));
+      broadcast({ type: 'oficinas-updated' });
+      return sendJson(res, 200, bot);
+    }
     if (parts.length === 6 && parts[5] === 'probar' && req.method === 'POST') {
       const botId = decodeURIComponent(parts[4]);
       const bot = bots.list(o.id).find(b => b.id === botId);
       if (!bot) return sendJson(res, 404, { error: i18n.t('server.error.botMissing') });
-      const turn = bots.openTurn({ ping: true, oficina: o.id, bot: botId }, 10 * 60000);
+      const t0 = Date.now();
+      const waitMs = Math.min(20000, Number(process.env.OFFICEMATRIX_PING_MS) || 20000);
+      const turn = bots.openTurn({ ping: true, oficina: o.id, bot: botId }, waitMs);
       const responder = bots.replyUrl(turn.token);
       if (!responder) { turn.cancel(); return sendJson(res, 400, { error: i18n.t('server.error.tunnelRequired') }); }
       const sent = await bots.send(o.id, botId, {
         tipo: 'ping', oficina: o.id, bot: { id: botId, nombre: bot.nombre }, responder_a: responder,
         formato: i18n.t('server.bot.ping'),
       });
-      if (!sent.ok) turn.cancel();
-      return sendJson(res, 200, { enviado: sent.ok, status: sent.status || null, error: sent.error || null });
+      if (!sent.ok) {
+        turn.cancel();
+        return sendJson(res, 200, { enviado: false, status: sent.status || null, error: sent.error || null, texto: null, pong: false, ms: Date.now() - t0 });
+      }
+      const reply = await Promise.race([turn.wait, new Promise(r => setTimeout(() => r(null), waitMs))]);
+      if (!reply) turn.cancel();
+      const texto = reply ? redact(String(reply.texto || '').trim(), bots.secretValues(o.id)) : null;
+      return sendJson(res, 200, { enviado: true, status: sent.status || null, error: null, texto, pong: (texto || '').toLowerCase() === 'pong', ms: Date.now() - t0 });
     }
+  }
+  // Chat de la oficina. El edificio no tiene: mezcla encargos sin relación.
+  if (parts[0] === 'api' && parts[1] === 'oficinas' && parts[3] === 'chat') {
+    const o = oficinas.read(parts[2]);
+    if (!o || o.id === EDIFICIO) return sendJson(res, 404, { error: i18n.t('chat.err.building') });
+    const secrets = bots.secretValues(o.id);
+    if (parts.length === 4 && req.method === 'GET') {
+      return sendJson(res, 200, { mensajes: officeChat.list(o.id, secrets), anfitrion: officeChat.readSettings(o.id).anfitrion, miembros: chatMembers(o.id) });
+    }
+    if (parts.length === 4 && req.method === 'PUT') {
+      const body = await readBody(req);
+      const id = body.anfitrion ? String(body.anfitrion) : null;
+      if (id && !chatMembers(o.id).some(m => m.sceneId === id || m.id === id)) return sendJson(res, 400, { error: i18n.t('chat.err.host') });
+      return sendJson(res, 200, officeChat.setHost(o.id, id));
+    }
+    if (parts.length === 4 && req.method === 'POST') {
+      const body = await readBody(req);
+      const mensajes = await runOfficeChat(o.id, body.texto ?? body.text ?? '');
+      return sendJson(res, 200, { mensajes });
+    }
+    if (parts[4] === 'mision' && parts.length === 5 && req.method === 'POST') {
+      const body = await readBody(req);
+      const ids = new Set((body.ids || []).map(String));
+      const all = officeChat.list(o.id, secrets);
+      const picked = ids.size ? all.filter(m => ids.has(m.id)) : [];
+      if (!picked.length) return sendJson(res, 400, { error: i18n.t('chat.pick') });
+      return sendJson(res, 200, draftMission(picked));
+    }
+    return sendJson(res, 404, { error: i18n.t('server.error.notFound') });
   }
   if (parts[0] === 'api' && parts[1] === 'oficinas') {
     const agentIds = loadConfig().agents; // objetos: la validación de empleados mira cmd y modelos
@@ -2025,9 +2386,25 @@ async function handle(req, res) {
         text: i18n.t('server.accepted.text', { why: porque }),
       });
       broadcast({ type: 'chat-updated', chatId: id });
+      generarCierre(id); // el veredicto pasa a «aceptado por ti»
       // No es un progress: el panel trata cualquier progress como ciclo en marcha.
       broadcast({ type: 'cycle-ended', chatId: id, title: chat.title, outcome: 'aceptado', summary: i18n.t('server.accepted.summary') });
       return sendJson(res, 200, { ok: true, outcome: 'aceptado' });
+    }
+    if (parts[3] === 'cierre' && parts.length === 4 && req.method === 'GET') {
+      const cierre = cierreLib.leer(dir);
+      if (!cierre) return sendJson(res, 404, { error: i18n.t('server.cierre.missing'), puedeGenerar: !running.has(id) });
+      if (url.searchParams.get('format') === 'md') {
+        res.writeHead(200, { 'Content-Type': 'text/markdown; charset=utf-8', 'Content-Disposition': `attachment; filename="${id}-cierre.md"`, 'Cache-Control': 'no-store' });
+        return res.end(cierreLib.aMarkdown(cierre));
+      }
+      return sendJson(res, 200, cierre);
+    }
+    if (parts[3] === 'cierre' && parts.length === 4 && req.method === 'POST') {
+      // «Generar informe de cierre» para misiones viejas, o rehacerlo. No con el ciclo en marcha: aún no terminó.
+      if (running.has(id)) return sendJson(res, 409, { error: i18n.t('server.cierre.running') });
+      const cierre = generarCierre(id);
+      return cierre ? sendJson(res, 201, cierre) : sendJson(res, 500, { error: i18n.t('server.cierre.failed') });
     }
     if (parts[3] === 'activity' && req.method === 'GET') {
       return sendJson(res, 200, readActivity(id, Math.min(Number(url.searchParams.get('limit')) || 600, 5000)));
@@ -2084,4 +2461,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { server, runCycle, stopCycle, running, readChat, PROJECTS_DIR, MEMORY_DIR, syncMemoryIn, syncMemoryOut, relojEditorial, lanzarTanda };
+module.exports = { server, runCycle, stopCycle, running, relatores, readChat, PROJECTS_DIR, MEMORY_DIR, syncMemoryIn, syncMemoryOut, relojEditorial, lanzarTanda };

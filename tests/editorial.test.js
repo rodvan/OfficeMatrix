@@ -108,7 +108,7 @@ const home = fs.mkdtempSync(path.join(os.tmpdir(), 'officematrix-editorial-'));
 const agente = path.join(__dirname, 'helpers', 'agente-editorial.js');
 fs.writeFileSync(path.join(home, 'agents.json'), JSON.stringify({
   agents: ['grok', 'claude'].map(id => ({ id, name: id, role: 'Editorial', color: '#fff', cmd: 'node', stream: 'text', args: [agente, id, '{prompt}'] })),
-  maxRounds: 2, autoMaxRounds: 6, minScore: 9, turnTimeoutMinutes: 1, idleTimeoutMinutes: 0,
+  maxRounds: 2, autoMaxRounds: 6, minScore: 9, turnTimeoutMinutes: 1, relatorMinutes: 0, idleTimeoutMinutes: 0,
 }));
 process.env.OFFICEMATRIX_HOME = home;
 process.env.OFFICEMATRIX_CONFIG = path.join(home, 'agents.json');

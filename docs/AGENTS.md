@@ -60,6 +60,8 @@ On first launch, OfficeMatrix copies `agents.example.json` to `agents.json` (whi
 }
 ```
 
+**Office chat turns are read-only.** For the office chat, OfficeMatrix rewrites `args` to remove the write flags of each known CLI (`claude`: `--permission-mode plan` and `--disallowedTools Write,Edit,MultiEdit,NotebookEdit,Bash`; `codex`: `--sandbox read-only`; `grok` and `agy`: no auto-approve). For any other CLI, set an optional `"chatArgs"` array; it replaces `args` for chat turns only.
+
 ---
 
 ## 2. Supported Streaming Protocols (`stream`)

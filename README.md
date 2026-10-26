@@ -10,7 +10,7 @@
 
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-00FF66?style=for-the-badge&logo=apache&logoColor=white)](LICENSE)
 [![Node.js >= 18](https://img.shields.io/badge/Node.js-%3E%3D18%20(Zero%20Deps)-10A37F?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org)
-[![Tests: 183 Passing](https://img.shields.io/badge/Tests-183%20Passing-4F8DF5?style=for-the-badge&logo=checkmarx&logoColor=white)](#-testing--development)
+[![Tests: 212 Passing](https://img.shields.io/badge/Tests-212%20Passing-4F8DF5?style=for-the-badge&logo=checkmarx&logoColor=white)](#-testing--development)
 [![Flat-Rate Subscriptions](https://img.shields.io/badge/CLIs-Flat--Rate%20Subscriptions-D0704F?style=for-the-badge)](#-quick-start-in-3-steps)
 [![Created by Cerebro Digital](https://img.shields.io/badge/By-Cerebro%20Digital-7c5cff?style=for-the-badge)](https://github.com/rodvan)
 
@@ -169,6 +169,26 @@ flowchart TD
 
 ---
 
+## 📋 Closing report
+
+When a mission ends, for any reason, the **Reports** tab opens with a closing report you can read without being a programmer:
+
+- **A traffic light and one line:** how it ended (approved, stalled, stopped by you…), rewritten in plain words by the best-scored agent.
+- **Numbers computed by the app, not by the agents:** files, lines, written checks, time, tokens and cost, plus a small chart of the scores per round.
+- **The request, point by point**, what was achieved, what is still pending (another round can do it, or you have to), and the risks.
+- **Done means applied:** the report says whether the changes are already in the app you use or only in the mission folder, and shows the steps to move them. Nothing is copied on its own.
+- **No silent stops:** if the score stops improving, the team gets an automatic closing round with the pending items. If it still is not finished, **▶ Continue until done** sits at the top of the report, with the remaining work already written. The hard cap is the mission's round limit, which you set.
+- **Older missions** get a **Generate closing report** button. Every report is saved in `.office/CIERRE.md` and can be exported.
+
+The report speaks the language of the request (English by default).
+
+<p align="center">
+  <img src="docs/img/cierre-1440.png" alt="Closing report at 1440 px: traffic light, verdict, live-app status and key numbers" width="720" />
+  <img src="docs/img/cierre-390.png" alt="Closing report on a 390 px phone" width="200" />
+</p>
+
+---
+
 ## 🕶️ The Command Deck & Archetypes
 
 Switch effortlessly between the **Isometric Starship Bridge** and **High-Density Telemetry Cards** using the toggle button in the header.
@@ -183,6 +203,21 @@ Switch effortlessly between the **Isometric Starship Bridge** and **High-Density
 | <img src="public/nave/iso/piloto-1.png" width="40" alt="Pilot" onerror="this.style.display='none'"/> | **Pilot** (`piloto`) | Kimi / Local | `#4F8DF5` | Multilingual reasoning, long-context analysis, and research. |
 | <img src="public/nave/iso/operador-1.png" width="40" alt="Operator" onerror="this.style.display='none'"/> | **Operator** (`operador`) | System | `#00FF66` | Live mission telemetry, turn orchestrator, and status monitor. |
 | <img src="public/nave/iso/sabia-1.png" width="40" alt="Sage" onerror="this.style.display='none'"/> | **Sage** (`sabia`) | Shared Brain | `#F5B942` | Knowledge curator: illuminates whenever new wisdom is committed to `memoria/`. |
+
+---
+
+## 💬 Chat with your team
+
+Not every message has to be a mission. Each office has a **Chat** tab next to missions.
+
+- The people in the room are that office's CLI agents and its Grok Bots, each with a character.
+- Type `@grok` or `@Radar`. Autocomplete offers the members. Only the people you mention reply, in the order you named them, and each one sees the answers already given.
+- If you mention nobody, the office host replies. You pick the host in the office ⚙, in the Grok Bots section.
+- A CLI answers with a short read-only turn: it does not edit the office's files. A Grok Bot answers through its webhook with `tipo` set to `chat`, and the reply comes back on `responder_a`.
+- **Turn into a mission** fills the composer with a title and a brief from the lines you ticked. You can edit them. Sending is what starts the cycle.
+- A slow or failed reply shows the failure diagnosis and the chat stays usable.
+
+To connect a bot, open the office ⚙ and follow the live checklist. The step-by-step, including the Cloudflare tunnel (service only `http://localhost:4323`), is in [docs/GROK-BOTS.md](docs/GROK-BOTS.md). Spanish guide: [docs/es/GROK-BOTS.md](docs/es/GROK-BOTS.md).
 
 ---
 
@@ -259,7 +294,7 @@ Kimi Code CLI (`kimi`) supports device-code OAuth (`kimi login`) with a Kimi Plu
 We maintain a rigorous zero-dependency automated test suite:
 
 ```bash
-# Run all unit and integration tests (183, zero dependencies)
+# Run all unit and integration tests (212, zero dependencies)
 npm test
 
 # Run repository publication hygiene check

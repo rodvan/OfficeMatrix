@@ -16,6 +16,7 @@ let workflowId = 'relevo';
 let suggestedWf = null;   // modo que la oficina sugiere según el texto del pedido
 let chairDraft = null;
 let composerOpen = false; // en una misión abierta el compositor va compacto hasta que el usuario lo usa
+let officeChatOn = false; // la pestaña Chat de la oficina, al lado de las misiones
 let statsScope = 'chat';
 let globalStats = null;
 let logEntries = [];
@@ -658,7 +659,7 @@ function renderChats() {
   const stopLabel = { meseta: t('ui.chat.plateau'), retroceso: t('ui.chat.regression'), agotado: t('ui.chat.cap') };
   $('chatList').innerHTML = list.map(c => `
     <li data-id="${esc(c.id)}" class="${c.id === currentId ? 'active' : ''}" title="${esc(c.title)}">
-      <span class="t">${esc(c.title)}</span>
+      <span class="t">${esc(c.title)}</span>${c.cierre ? `<small class="cierre-mini" title="${esc(c.cierre.frase)}"><i class="cierre-luz ${esc(c.cierre.semaforo)}"></i> ${esc(t(`cierre.ui.luz.${c.cierre.semaforo}`))} · ${esc(c.cierre.frase)}</small>` : ''}
       <small><span class="state ${c.outcome}">${(c.outcome === 'partial' && stopLabel[c.stopReason]) || (c.accepted ? t('ui.chat.accepted') : '') || label[c.outcome] || ''}</span>
         ${c.workflow && c.workflow !== 'relevo' ? `<span title="${esc(wfOf(c.workflow)?.name || '')}">${esc(wfOf(c.workflow)?.icon || '')}</span>` : ''}${c.mode === 'auto' ? '<span>AUTO</span>' : ''}<span>${t('ui.chat.turns', { n: c.turns })}</span>
         ${c.lastScore != null ? `<span>${c.lastScore}/10</span>` : ''}${c.openObjections ? `<span style="color:var(--amber)">⚑${c.openObjections}</span>` : ''}</small>
@@ -686,6 +687,8 @@ function renderOffices() {
   document.querySelector('.office-bar').style.setProperty('--oc', o.color || '#39e58c');
   $('officeDesc').textContent = o.id === 'edificio' ? t('ui.office.edificioDesc') : t('ui.office.manual', { desc: o.descripcion || o.nombre });
   $('officeCfgBtn').hidden = o.id === 'edificio';
+  $('sideChat').hidden = o.id === 'edificio';
+  if (o.id === 'edificio' && officeChatOn) setSide('missions');
 }
 
 // Cambiar de oficina: otras misiones, otro cerebro, otro equipo.
@@ -702,6 +705,7 @@ async function setOffice(id, { openNew = true } = {}) {
   await loadAgents(); // los empleados de esta oficina (o las IAs del edificio)
   if (epoch !== officeEpoch) return;
   if (openNew) newChat();
+  if (officeChatOn) loadOfficeChat().catch(err => toast(err.message, true));
   await Promise.all([loadChats(), loadMemory()]);
 }
 
@@ -1025,44 +1029,85 @@ $('officeKeyBtn').addEventListener('click', async () => {
 });
 // ---------- Grok Bots de la oficina (empleados externos por webhook) ----------
 const ago = iso => { const s = Math.round((Date.now() - new Date(iso)) / 1000); return s < 60 ? `${s} s` : s < 3600 ? `${Math.round(s / 60)} min` : `${Math.round(s / 3600)} h`; };
+const WIZARD_TEXT = {
+  'wizard.gate.ok': v => t('wizard.gate.ok', v),
+  'wizard.gate.down': v => t('wizard.gate.down', v),
+  'wizard.tunnel.ok': v => t('wizard.tunnel.ok', v),
+  'wizard.tunnel.missing': v => t('wizard.tunnel.missing', v),
+  'wizard.tunnel.bad': v => t('wizard.tunnel.bad', v),
+  'wizard.tunnel.down': v => t('wizard.tunnel.down', v),
+};
 async function loadOfficeBots(officeId) {
   const epoch = officeEpoch;
-  const [list, ajustes] = await Promise.all([api(`/api/oficinas/${encodeURIComponent(officeId)}/bots`), api('/api/bots/ajustes')]);
+  const [list, ajustes, wizard, chat] = await Promise.all([
+    api(`/api/oficinas/${encodeURIComponent(officeId)}/bots`),
+    api('/api/bots/ajustes'),
+    api(`/api/oficinas/${encodeURIComponent(officeId)}/bots/asistente`),
+    api(`/api/oficinas/${encodeURIComponent(officeId)}/chat`),
+  ]);
   if (epoch !== officeEpoch || officeEditing !== officeId) return;
   if (document.activeElement !== $('botsUrl')) $('botsUrl').value = ajustes.publicUrl || '';
+  const gate = wizard.comprobaciones.find(c => c.id === 'puerta');
+  $('botGateBtn').hidden = !gate || gate.ok;
+  $('botChecks').innerHTML = wizard.comprobaciones.map(c => `<li class="wz-check${c.ok ? ' ok' : ''}"><i></i><span>${esc((WIZARD_TEXT[c.clave] || (v => c.clave))(c.vars || {}))}</span></li>`).join('');
+  $('botInstruction').textContent = wizard.bloques.instruccion;
+  $('botSample').textContent = wizard.bloques.json;
+  const hostOpts = [`<option value="">${esc(t('wizard.hostNone'))}</option>`].concat(chat.miembros.map(m => `<option value="${esc(m.sceneId)}"${m.sceneId === chat.anfitrion ? ' selected' : ''}>${esc(m.nombre)} · ${esc(m.puesto || m.avatar || '')}</option>`));
+  if (document.activeElement !== $('chatHost')) $('chatHost').innerHTML = hostOpts.join('');
   $('officeBotList').innerHTML = list.map(b => `<li style="--c:${esc(b.color)}"><span>🤖 <b style="color:var(--c)">${esc(b.nombre)}</b>
-      <small class="muted">${esc(b.host)} · ${b.firma === 'standard-webhooks' ? t('ui.bot.signature') : t('ui.bot.bearer')} …${esc(b.pista)} ·
+      <small class="muted">${esc(b.puesto || '')}${b.puesto ? ' · ' : ''}${b.sinLlave ? esc(t('wizard.needsKey')) : `${esc(b.host)} · ${b.firma === 'standard-webhooks' ? t('ui.bot.signature') : t('ui.bot.bearer')} …${esc(b.pista)}`} ·
       ${b.ultimaRespuesta ? t('ui.bot.repliedAgo', { time: esc(ago(b.ultimaRespuesta)) }) : t('ui.bot.neverReplied')}</small></span>
-      <button type="button" class="btn ghost small" data-bot-test="${esc(b.id)}" title="${t('ui.bot.testTip')}">${t('ui.bot.testBtn')}</button>
+      <button type="button" class="btn ghost small" data-bot-test="${esc(b.id)}" title="${t('ui.bot.testTip')}" ${b.sinLlave ? 'disabled' : ''}>${t('ui.bot.testBtn')}</button>
+      <button type="button" class="btn ghost small" data-bot-copy="${esc(b.id)}">${t('wizard.copy')}</button>
+      ${b.sinLlave ? `<button type="button" class="btn ghost small" data-bot-key="${esc(b.id)}">${t('wizard.addKey')}</button>` : ''}
       <button type="button" class="btn ghost small" data-bot-del="${esc(b.id)}">${t('ui.bot.delBtn')}</button></li>`).join('')
     || `<li class="muted">${t('ui.bot.noBots')}</li>`;
+  const others = oficinas.filter(x => x.id !== officeId && x.id !== 'edificio');
+  $('botCopyDest').innerHTML = others.map(x => `<option value="${esc(x.id)}">${esc(x.nombre)}</option>`).join('') || `<option value="">${esc(t('wizard.noOtherOffice'))}</option>`;
 }
 $('botsUrlBtn').addEventListener('click', async () => {
   try {
     const r = await api('/api/bots/ajustes', { method: 'PUT', body: JSON.stringify({ publicUrl: $('botsUrl').value }) });
     $('botsUrl').value = r.publicUrl;
     toast(r.publicUrl ? t('ui.bot.publicSaved') : t('ui.bot.publicCleared'));
+    if (officeEditing) await loadOfficeBots(officeEditing);
   } catch (err) { $('officeHint').textContent = err.message; }
 });
 $('botAddBtn').addEventListener('click', async () => {
   const officeId = officeEditing;
   try {
     const b = await api(`/api/oficinas/${encodeURIComponent(officeId)}/bots`, { method: 'POST', body: JSON.stringify({
-      nombre: $('botName').value, avatar: $('botAvatar').value, color: $('botColor').value, url: $('botUrl').value, llave: $('botKey').value,
+      nombre: $('botName').value, puesto: $('botRole').value, avatar: $('botAvatar').value, color: $('botColor').value, url: $('botUrl').value, llave: $('botKey').value,
     }) });
-    for (const id of ['botName', 'botUrl', 'botKey']) $(id).value = ''; // la llave no se queda en la página
+    for (const id of ['botName', 'botRole', 'botUrl', 'botKey']) $(id).value = ''; // la llave no se queda en la página
     toast(t('ui.bot.joined', { name: b.nombre }));
     await Promise.all([loadOfficeBots(officeId), loadAgents()]);
     fillComposerFromConfig(null);
   } catch (err) { $('officeHint').textContent = err.message; }
 });
+let botCopyId = null;
 $('officeBotList').addEventListener('click', async e => {
   const test = e.target.closest('[data-bot-test]'), del = e.target.closest('[data-bot-del]');
+  const copy = e.target.closest('[data-bot-copy]'), keyBtn = e.target.closest('[data-bot-key]');
   const officeId = officeEditing;
   try {
     if (test) {
+      toast(t('ui.bot.testWaiting'));
       const r = await api(`/api/oficinas/${encodeURIComponent(officeId)}/bots/${encodeURIComponent(test.dataset.botTest)}/probar`, { method: 'POST', body: '{}' });
-      toast(r.enviado ? t('ui.bot.testSent') : t('ui.bot.testFailed', { err: r.status ? `HTTP ${r.status}` : r.error }), !r.enviado);
+      toast(r.pong ? t('ui.bot.pong', { ms: r.ms }) : t('ui.bot.testFailed', { err: r.texto || r.error || (r.status ? `HTTP ${r.status}` : t('ui.bot.noPong')) }), !r.pong);
+      await loadOfficeBots(officeId);
+    }
+    if (copy) {
+      botCopyId = copy.dataset.botCopy;
+      $('botCopyKey').checked = false;
+      $('botCopyBox').hidden = false;
+    }
+    if (keyBtn) {
+      await api(`/api/oficinas/${encodeURIComponent(officeId)}/bots/${encodeURIComponent(keyBtn.dataset.botKey)}/secreto`, { method: 'POST', body: JSON.stringify({ url: $('botUrl').value, llave: $('botKey').value }) });
+      $('botUrl').value = '';
+      $('botKey').value = '';
+      toast(t('wizard.keySaved'));
+      await Promise.all([loadOfficeBots(officeId), loadAgents()]);
     }
     if (del) {
       await api(`/api/oficinas/${encodeURIComponent(officeId)}/bots/${encodeURIComponent(del.dataset.botDel)}`, { method: 'DELETE' });
@@ -1070,6 +1115,170 @@ $('officeBotList').addEventListener('click', async e => {
       await Promise.all([loadOfficeBots(officeId), loadAgents()]);
       fillComposerFromConfig(null);
     }
+  } catch (err) { toast(err.message, true); }
+});
+async function copyBotText(text) {
+  try { await navigator.clipboard.writeText(text); }
+  catch {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+  }
+  toast(t('wizard.copied'));
+}
+$('copyInstruction').addEventListener('click', () => copyBotText($('botInstruction').textContent));
+$('copyJson').addEventListener('click', () => copyBotText($('botSample').textContent));
+$('botGateBtn').addEventListener('click', async () => {
+  try {
+    const r = await api('/api/bots/puerta', { method: 'POST', body: '{}' });
+    toast(r.already ? t('wizard.gate.already') : t('wizard.gate.started'));
+    if (officeEditing) await loadOfficeBots(officeEditing);
+  } catch (err) { toast(err.message, true); }
+});
+$('chatHostBtn').addEventListener('click', async () => {
+  const officeId = officeEditing;
+  try {
+    await api(`/api/oficinas/${encodeURIComponent(officeId)}/chat`, { method: 'PUT', body: JSON.stringify({ anfitrion: $('chatHost').value || null }) });
+    toast(t('wizard.hostSaved'));
+  } catch (err) { $('officeHint').textContent = err.message; }
+});
+// ---------- Chat de la oficina (no es una misión) ----------
+let chatMembersLive = [];
+let chatSeen = new Set();
+function setSide(which) {
+  officeChatOn = which === 'chat' && oficina !== 'edificio';
+  $('sideMissions').classList.toggle('on', !officeChatOn);
+  $('sideChat').classList.toggle('on', officeChatOn);
+  $('sideMissions').setAttribute('aria-pressed', String(!officeChatOn));
+  $('sideChat').setAttribute('aria-pressed', String(officeChatOn));
+  for (const id of ['newChatBtn', 'chatFilter']) $(id).hidden = officeChatOn;
+  document.querySelector('.missions .label').hidden = officeChatOn;
+  $('chatList').hidden = officeChatOn;
+  $('officeChat').hidden = !officeChatOn;
+  $('composer').hidden = officeChatOn;
+  document.querySelector('.board-head').hidden = officeChatOn;
+  if (officeChatOn) loadOfficeChat().catch(err => toast(err.message, true));
+}
+$('sideMissions').addEventListener('click', () => setSide('missions'));
+$('sideChat').addEventListener('click', () => setSide('chat'));
+
+function chatAuthor(m) {
+  const a = m.autor || {};
+  const who = a.tipo === 'owner' ? t('chat.you') : a.nombre || '';
+  const role = a.puesto ? ` · ${a.puesto}` : a.avatar ? ` · ${a.avatar}` : '';
+  return `${who}${a.tipo === 'owner' ? '' : role}`;
+}
+function renderChatMessage(m) {
+  if (chatSeen.has(m.id)) {
+    const old = document.querySelector(`[data-chat-id="${CSS.escape(m.id)}"]`);
+    if (old) old.outerHTML = chatMessageHtml(m);
+    return;
+  }
+  chatSeen.add(m.id);
+  $('chatLog').insertAdjacentHTML('beforeend', chatMessageHtml(m));
+  $('chatLog').scrollTop = $('chatLog').scrollHeight;
+}
+function chatMessageHtml(m) {
+  const fail = m.fallo ? `<div class="chat-fail"><b>${esc(m.fallo.label || '')}</b> ${esc(m.fallo.detail || '')} <span class="muted">${esc(m.fallo.hint || '')}</span></div>` : '';
+  return `<article class="chat-msg from-${esc(m.autor?.tipo || 'system')}${m.fallo ? ' failed' : ''}" data-chat-id="${esc(m.id)}">
+    <label><input type="checkbox" data-chat-pick="${esc(m.id)}"> <b>${esc(chatAuthor(m))}</b></label>
+    <p>${esc(m.texto || '')}</p>${fail}</article>`;
+}
+async function loadOfficeChat() {
+  if (oficina === 'edificio') return;
+  const epoch = officeEpoch, office = oficina;
+  const data = await api(`/api/oficinas/${encodeURIComponent(office)}/chat`);
+  if (epoch !== officeEpoch || office !== oficina) return;
+  chatMembersLive = data.miembros || [];
+  chatSeen = new Set();
+  $('chatMembers').innerHTML = chatMembersLive.map(m => `<li style="--c:${esc(m.color || '#c062d6')}"><b>@${esc(m.mencion)}</b> ${esc(m.nombre)} <span class="muted">${esc(m.puesto || m.avatar || '')}${m.tipo === 'bot' ? ` · ${esc(t('chat.bot'))}` : ''}${data.anfitrion === m.sceneId ? ` · ${esc(t('wizard.host'))}` : ''}</span></li>`).join('')
+    || `<li class="muted">${esc(t('chat.emptyMembers'))}</li>`;
+  $('chatLog').innerHTML = data.mensajes?.length ? '' : `<p class="muted chat-empty">${esc(t('chat.emptyLog'))}</p>`;
+  for (const m of data.mensajes || []) renderChatMessage(m);
+}
+function onOfficeChat(ev) {
+  if (!officeChatOn || ev.oficina !== oficina) {
+    if (ev.fase === 'hablando' && ev.quien) setLive(ev.quien.sceneId, { activity: t('chat.talking'), said: '', started: Date.now() });
+    if (ev.fase === 'callado' && ev.quien) setLive(ev.quien.sceneId, null);
+    if (ev.fase === 'delta' && ev.quien) setLive(ev.quien.sceneId, { activity: t('chat.talking'), said: String(ev.texto || '').slice(-80) });
+    return;
+  }
+  if (ev.fase === 'hablando' && ev.quien) setLive(ev.quien.sceneId, { activity: t('chat.talking'), said: '', started: Date.now() });
+  if (ev.fase === 'callado' && ev.quien) setLive(ev.quien.sceneId, null);
+  if (ev.fase === 'delta' && ev.quien) {
+    setLive(ev.quien.sceneId, { activity: t('chat.talking'), said: String(ev.texto || '').slice(-80) });
+    let live = document.querySelector(`[data-chat-live="${CSS.escape(ev.quien.sceneId)}"]`);
+    if (!live) {
+      $('chatLog').insertAdjacentHTML('beforeend', `<article class="chat-msg live" data-chat-live="${esc(ev.quien.sceneId)}"><b>${esc(ev.quien.nombre)}</b><p></p></article>`);
+      live = document.querySelector(`[data-chat-live="${CSS.escape(ev.quien.sceneId)}"]`);
+    }
+    live.querySelector('p').textContent = ev.texto || '';
+  }
+  if (ev.fase === 'mensaje' && ev.mensaje) {
+    document.querySelector(`[data-chat-live="${CSS.escape(ev.mensaje.autor?.sceneId || '')}"]`)?.remove();
+    renderChatMessage(ev.mensaje);
+  }
+}
+$('chatForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const texto = $('chatInput').value.trim();
+  if (!texto || oficina === 'edificio') return;
+  $('chatInput').disabled = true;
+  try {
+    const r = await api(`/api/oficinas/${encodeURIComponent(oficina)}/chat`, { method: 'POST', body: JSON.stringify({ texto }) });
+    $('chatInput').value = '';
+    $('chatSuggest').hidden = true;
+    document.querySelectorAll('[data-chat-live]').forEach(el => el.remove());
+    for (const m of r.mensajes || []) renderChatMessage(m);
+  } catch (err) { toast(err.message, true); }
+  finally { $('chatInput').disabled = false; $('chatInput').focus(); }
+});
+$('chatInput').addEventListener('input', () => {
+  const upto = $('chatInput').value.slice(0, $('chatInput').selectionStart);
+  const m = upto.match(/(^|\s)@([\w.-]*)$/);
+  if (!m) { $('chatSuggest').hidden = true; return; }
+  const q = m[2].toLowerCase();
+  const hits = chatMembersLive.filter(x => x.mencion.startsWith(q) || x.nombre.toLowerCase().startsWith(q)).slice(0, 6);
+  $('chatSuggest').hidden = !hits.length;
+  $('chatSuggest').innerHTML = hits.map(h => `<button type="button" data-mention="${esc(h.mencion)}">@${esc(h.mencion)} <span class="muted">${esc(h.nombre)}</span></button>`).join('');
+});
+$('chatSuggest').addEventListener('click', e => {
+  const b = e.target.closest('[data-mention]');
+  if (!b) return;
+  const ta = $('chatInput');
+  const upto = ta.value.slice(0, ta.selectionStart);
+  const rest = ta.value.slice(ta.selectionStart);
+  ta.value = upto.replace(/@[\w.-]*$/, `@${b.dataset.mention} `) + rest;
+  $('chatSuggest').hidden = true;
+  ta.focus();
+});
+$('chatToMission').addEventListener('click', async () => {
+  const ids = [...document.querySelectorAll('[data-chat-pick]:checked')].map(el => el.dataset.chatPick);
+  if (!ids.length) return toast(t('chat.pick'), true);
+  try {
+    const draft = await api(`/api/oficinas/${encodeURIComponent(oficina)}/chat/mision`, { method: 'POST', body: JSON.stringify({ ids }) });
+    setSide('missions');
+    newChat();
+    $('input').value = `${draft.titulo}\n\n${draft.texto}`;
+    openComposer();
+    $('input').focus();
+    toast(t('chat.prefilled'));
+  } catch (err) { toast(err.message, true); }
+});
+
+$('botCopyGo').addEventListener('click', async () => {
+  const officeId = officeEditing;
+  if (!botCopyId || !$('botCopyDest').value) return;
+  const incluirLlave = $('botCopyKey').checked;
+  if (incluirLlave && !window.confirm(t('wizard.copyConfirm'))) return;
+  try {
+    const bot = await api(`/api/oficinas/${encodeURIComponent(officeId)}/bots/${encodeURIComponent(botCopyId)}/copiar`, { method: 'POST', body: JSON.stringify({ destino: $('botCopyDest').value, incluirLlave }) });
+    $('botCopyBox').hidden = true;
+    $('botCopyKey').checked = false;
+    toast(bot.llaveCopiada ? t('wizard.copiedKey', { name: bot.nombre, office: $('botCopyDest').value }) : t('wizard.copiedBot', { name: bot.nombre, office: $('botCopyDest').value }));
   } catch (err) { toast(err.message, true); }
 });
 
@@ -1109,6 +1318,7 @@ async function openChat(id, { keepLog = false } = {}) {
   if (switching || !keepLog) await loadActivity();
   if (currentId !== id || current !== result) return;
   renderAll();
+  loadCierre();
   renderChats();
 }
 
@@ -1240,6 +1450,8 @@ function renderProgress(p) {
 
 // ---------- Reportes ----------
 
+let cierreScrollFor = null;
+
 function renderReports() {
   const box = $('tab-reports');
   if (!current && oficina !== 'edificio') { box.innerHTML = hoyHtml(); return; }
@@ -1251,11 +1463,14 @@ function renderReports() {
   const banner = current.outcome === 'interrupted'
     ? `<div class="interrupted-banner"><span>${t('ui.hoy.interruptedBanner')}</span><button type="button" class="btn small primary" data-resume>${t('ui.hoy.resumeCycleBtn')}</button></div>`
     : '';
-  // La entrega va arriba: al terminar es lo primero que se busca (qué se entregó y dónde).
-  // Arriba, en un vistazo: por qué terminó, cuánto costó y qué se hizo y qué falta (Charts.summary, D63).
+  // El informe va el primero: el dueño no tiene que leer los turnos para saber en qué terminó.
+  // El vistazo técnico (Charts.summary) solo sale si aún no hay informe, para no contar el final dos veces.
   const done = !current.running && current.messages.some(m => m.kind === 'agent');
-  const summaryCard = done ? `<div class="report-summary">${Charts.summary(current, Charts.distinct(agents))}</div>` : '';
-  box.innerHTML = banner + summaryCard + deliveryCard() + (current.messages.map(m => {
+  const cierre = cierreHtml();
+  const tieneInforme = Boolean(cierre) && !cierreView?.data?.missing;
+  const stickToReport = tieneInforme && cierreScrollFor !== currentId;
+  const summaryCard = done && !tieneInforme ? `<div class="report-summary">${Charts.summary(current, Charts.distinct(agents))}</div>` : '';
+  box.innerHTML = banner + cierre + summaryCard + deliveryCard() + (current.messages.map(m => {
     if (m.kind === 'user') return `<div class="msg user"><div class="msg-head">${m.intervention ? t('ui.reports.liveDirective') : t('ui.reports.request')} · ${hhmmss(m.ts)}${m.config ? t('ui.reports.requestMeta', { mode: m.config.mode === 'auto' ? t('ui.reports.modeAuto') : t('ui.reports.modeRounds'), rounds: m.config.maxRounds, score: m.config.minScore }) : ''}</div><div class="msg-body">${esc(m.text)}</div></div>`;
     if (m.kind === 'system') return `<div class="msg system">${esc(m.text)}</div>`;
     const a = agentOf(m.agentId);
@@ -1288,7 +1503,9 @@ function renderReports() {
       ${m.diffs?.length ? `<details class="files-touched"><summary>${t('ui.feed.diffSummary', { count: m.diffs.length })}</summary>${m.diffs.map(d => `<div class="diff-file">${esc(d.file)} · ${esc(d.status)}</div><pre class="diff">${diffHtml(d.patch)}</pre>`).join('')}</details>` : ''}
     </div>`;
   }).join('') || `<div class="empty">${t('ui.reports.waitingFirst')}</div>`);
-  if (atBottom) box.scrollTop = box.scrollHeight;
+  // Con informe, la primera pintura de esa misión enseña el veredicto. Si no, el hilo en vivo sigue al final.
+  if (stickToReport) { box.scrollTop = 0; cierreScrollFor = currentId; }
+  else if (atBottom && !tieneInforme) box.scrollTop = box.scrollHeight;
 }
 
 // Al terminar: qué se entregó y dónde, con el principal destacado y su vista previa a un clic.
@@ -2448,6 +2665,7 @@ function connect() {
   events.onerror = () => { $('linkState').textContent = t('ui.link.off'); $('linkState').classList.add('down'); };
   events.onmessage = e => {
     const ev = JSON.parse(e.data);
+    if (ev.type === 'office-chat') onOfficeChat(ev);
     if (ev.type === 'editorial-updated' && ev.oficina === oficina) loadEditorial();
     if (ev.type === 'cycle-ended') cycleEnded(ev);
     if (ev.type === 'objection-answered') objectionAnswered(ev);
@@ -2465,7 +2683,7 @@ function connect() {
     if (['cycle-started', 'cycle-ended', 'chat-updated', 'memory-updated', 'entrantes-updated', 'oficinas-updated', 'agent-failed'].includes(ev.type)) loadHoySoon();
     // Cada oficina tiene su cerebro: solo se recarga el de la oficina que se está viendo.
     if (ev.type === 'memory-updated' && (ev.oficina || 'edificio') === oficina) { Nave.sabia(); loadMemory(); if ($('brainQuery').value.trim()) searchBrain(); }
-    if (['chat-updated', 'cycle-started', 'cycle-ended', 'debate-updated'].includes(ev.type)) {
+    if (['chat-updated', 'cycle-started', 'cycle-ended', 'cierre-updated', 'debate-updated'].includes(ev.type)) {
       if (ev.chatId === currentId) refresh();
       loadChats();
     }

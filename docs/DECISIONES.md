@@ -1,5 +1,26 @@
 # Decisiones de arquitectura y diseño
 
+## GB1 · Conectar un Grok Bot y charlar en la oficina (Grok, ronda 1, 2026-10-26)
+
+Diagnóstico corto de lo que el producto de xAI deja hacer, y de lo que OfficeMatrix añade para que una persona sin programar conecte un bot. Fuentes leídas el 2026-10-26. No se inventan capacidades.
+
+**Qué ya hacía OfficeMatrix.** Webhook firmado hacia la rutina, vuelta por `responder_a` con token de un solo uso, ping, y el bot como empleado dentro de una misión. La puerta (`puerta-bots.js`) escucha en `127.0.0.1:4323` y no sirve el panel. Desde esta ronda la puerta tiene tres rutas: `GET /bots/health` (solo `{ok, servicio}`, sin secretos), `POST /bots/r/<token>` y `POST /bots/o/<oficina>/<llave>`.
+
+**Qué puede una rutina de Grok Bot, citado.**
+- Disparador webhook, con URL y llave propias: changelog v0.21.0, 19-ago-2026 (https://x.ai/changelog/bot).
+- La rutina disparada por webhook recibe el cuerpo del request: v0.27.0, 25-ago-2026.
+- El menú de la rutina muestra la URL y la llave, y la llave sigue oculta hasta que la revelas: v0.75.2, 22-oct-2026. El bot no puede leértelas.
+- Tus rutinas pueden ejecutarse hasta 300 veces por hora en total (antes 100) y cada rutina hasta 200: v0.75.5, 23-oct-2026.
+- Una aprobación de Auto-review nacida de una rutina, un disparador u otro bot caduca a los ~10 minutos: la tarjeta pasa a Expired y la acción no corre. Ask first gana a Allow automatically. Página pública «Approvals, security, and privacy», publicada 2026-10-22 (https://docs.x.ai/grok-bot/approvals-security-and-privacy). El índice público la mostraba así el 2026-10-26; una descarga directa del markdown dio 404 el 2026-10-25.
+- Un bot puede tener hasta 50 rutinas; la app guarda las 20 ejecuciones más recientes; los horarios van al menos a cinco minutos. Página «Skills and routines», publicada 2026-10-22 (https://docs.x.ai/grok-bot/skills-routines-and-automations), mismo índice. El «cinco minutos» es de los horarios, no un dato de los webhooks.
+- Los envíos de correo y Slack que pides en el chat salen cuando Auto-review los deja; los de una rutina u otro turno siguen en borrador (v0.75.5). Eso es correo y Slack, no cualquier POST.
+
+**Qué no puede.** No hay API pública para leer la respuesta del bot. OfficeMatrix solo se entera de lo que el bot manda por POST a `responder_a`. Un HTTP 200 o 202 significa que el webhook aceptó el aviso, no que la instrucción terminó. Mezclar los dos dialectos de firma (`whsec_` = Standard Webhooks, cualquier otra llave = `Authorization: Bearer`) hace fallar la llamada.
+
+**Qué impide conectar un bot en 10 minutos, sin programar.** (1) Hace falta un túnel público de Cloudflare que instala la persona, y el servicio tiene que ser solo `http://localhost:4323`, nunca el panel en el 4321. La app no instala nada ni pide administrador. (2) La URL y la llave solo están en el menú de la rutina, en el escritorio, y la llave hay que revelarla. (3) El POST de vuelta es una acción que Auto-review puede frenar, y la tarjeta de una rutina caduca a los ~10 minutos. (4) Hay dos dialectos de firma. (5) Ver «aceptado» no es ver la respuesta.
+
+**Qué añade esta ronda.** Asistente en el ⚙ de la oficina con comprobaciones en vivo (puerta y vuelta a la URL pública `/bots/health`, sin seguir redirecciones), bloques para copiar, ping con «pong» y latencia, personaje, puesto y color, varios bots, y copia a otra oficina sin llave salvo confirmación explícita (`incluirLlave === true`). Chat de oficina en `oficinas/<id>/chat/`, junto a las misiones: @menciones, anfitrión si no hay @, orden, escena de quien habla, y «convertir en misión» que solo rellena el compositor. La CLI de chat trabaja en un cajón temporal con una orden fija, así el texto del usuario no entra en el shell. Un fallo usa `lib/failure.js` y no bloquea el chat. El contrato de misión (`tipo` `turno` y `ping`) no cambia; `tipo` `chat` se suma.
+
 ## D59 · La gráfica de convergencia usa la media del motor (Grok, ciclo 2, ronda 1)
 - **Problema:** D58 decía que `Charts.convergence` usaba `roundMean`. No era así. Promediaba quien tuviera nota y solo apartaba los `ERROR`, así que una ronda con un caído pintaba 8,5 cuando el motor no tiene media. Un `PARCIAL` entraba en la cuenta. En Consejo la síntesis entraba: el mensaje no trae `self`, y el motor ni la mira (filtra la fase `aprobacion`). Una ronda a medias se comparaba con la anterior. Si la media seguía sobre la nota mínima, el rótulo decía «meta alcanzada» aunque la bajada fuera un retroceso: el motor se detiene igual. Dos ciclos de la misma misión se mezclaban en el mismo número de ronda.
 - **Regla:** la misma fórmula que `roundMean`. Hacen falta los turnos del equipo (`expected`; en Consejo, uno menos: el presidente no vota). `ERROR`, `PARCIAL`, una nota ausente o una ronda a medias: sin punto, y la línea no salta ese hueco. Quien salió con `ERROR` deja de contar en el `expected` de la ronda siguiente. Consejo: solo `aprobacion`. Delphi: solo `revision`. Solo el último ciclo. Retroceso y meseta se dicen aunque la media siga ≥ `minScore`.
@@ -744,3 +765,215 @@ Cada decisión con su porqué. Si alguien la cambia, que deje aquí la nueva y e
   `en` (cliente, servidor y `<html lang>`) y que la preferencia persiste. También que toda clave usada en el código
   existe y que `index.html` no tiene textos ni atributos sin clave (`translate="no"` para marcas y endónimos). En
   `npm test` sin `OFFICEMATRIX_HOME` se ignora el idioma guardado en la carpeta del usuario.
+
+
+## RF1 · El informe de cierre es un archivo del servidor, no un mensaje más (Claude, reporte de cierre, ronda 1)
+- Se genera en el `finally` de los dos motores, así que sale con cualquier final: consenso, meseta, retroceso, tope,
+  caída de todos, error, parada. Una misión que se cortó (servidor cerrado) lo tiene al pulsar «Generar informe de
+  cierre», y dice «interrumpido».
+- Va en `.office/cierre.json` (la UI) y `.office/CIERRE.md` (exportar, leer sin app). Contrato en `docs/CIERRE.md`.
+- La línea de sistema de siempre se queda (`resumenServidor`): la usan `om.js`, las llaves y los avisos.
+- El informe es del **último ciclo**. Los ciclos anteriores de la misma misión solo se cuentan (`ciclosPrevios`).
+  Los números de git sí cubren la misión entera, desde su base.
+
+## RF2 · Quién redacta: el servidor siempre; un relator corto, opcional, solo para lo subjetivo (Claude, reporte de cierre, ronda 1)
+| Opción | A favor | En contra |
+|---|---|---|
+| Plantilla determinista sin IA | Siempre sale, aunque todas las CLIs estén caídas; gratis; los números no se pueden inventar | Los logros quedan en palabras del agente (rutas, nombres de función); sin IA no se sabe si un punto del brief está **hecho** |
+| Relator: turno extra del agente con mejor nota | Habla en palabras del dueño; puede marcar ✔ con evidencia | Cuesta un turno; puede no estar disponible; puede inflar el resultado; ese agente es juez y parte |
+| Jefe en Consejo | Ya tiene la visión de conjunto | Solo existe en Consejo |
+- **Decisión:** las tres capas, en este orden.
+  1. El servidor escribe la plantilla completa en el momento: números, notas, caídas, objeciones, opciones y lo que dicen
+     los traspasos (marcado «de quién»).
+  2. Si hay un agente activo, hace de relator con un tope de 3 min: el de mejor nota final, o el presidente en Consejo.
+     Solo devuelve JSON. `fusionarRelato` lo valida: no toca los números, un ✔ sin evidencia en disco baja a ◐, la
+     evidencia tiene que estar dentro de la misión y todo pasa por el filtro de secretos.
+  3. Si el relator falla, tarda o cambia archivos, se queda la plantilla. La tarjeta dice quién la redactó (`autor`).
+- La plantilla ya está; el turno del relator lo implementa la ronda siguiente (Codex).
+
+## RF3 · Los números se cuentan contra el commit base de la misión, y solo en su propio repositorio (Claude, reporte de cierre, ronda 1)
+- **Base:** primero, `chat.base`, el HEAD que se guarda al empezar la primera vez. Si no hay (misiones viejas), el último
+  commit antes de `chat.created`. Si tampoco, la raíz. Los commits que hagan los agentes no mueven la base.
+- **Qué se cuenta:**
+  - `git diff --name-status/--numstat -M <base>`, más los archivos sin seguimiento que no estén ignorados;
+  - las líneas de los archivos nuevos se cuentan en el disco;
+  - un UTF-16 con BOM (los `.txt` de PowerShell) es texto;
+  - lo binario no suma líneas.
+- **«sacado»:** borrado para git, pero sigue en disco. No cuenta como líneas quitadas y sale como riesgo, porque con git
+  no viaja. En `2026-10-24-instalador-y-publicacion`, los 61 «borrados» de git siguen todos en disco. Decir «se borraron
+  61 archivos» habría sido falso.
+- **Solo el repositorio propio:** el `--show-toplevel` tiene que ser la carpeta de la misión. Una misión sin `.git` dentro
+  de `proyectos/` de la app (que sí es repositorio, con `proyectos/` ignorado) contaría los cambios de la app. Sin repo
+  propio se usan las instantáneas de cada turno: archivos tocados, sin líneas, y se dice así.
+- **Pruebas antes/después:** las objetivas son los `test('…')` definidos en `tests/*.test.js`, ahora y en la base.
+  Las que **corrieron** las declara cada agente («159/159») y se marcan `declarado`. El servidor no corre `npm test`
+  al cerrar: cuesta un minuto, y en la sandbox de Codex S1F falla por el entorno, no por el código.
+- Comprobado contra las hermanas (solo lectura):
+  - editorial: 17 nuevos, 10 modificados, +1972 −24, pruebas 140 → 152;
+  - instalador: 22 nuevos, 38 modificados, 61 sacados, +2720 −708, pruebas 130 → 149.
+  - Las «~1 200 líneas» del brief editorial eran las de `lib/`. Con pruebas, docs y la bandeja son 1 972.
+
+## RF4 · Veredicto en una frase y semáforo con texto (Claude, reporte de cierre, ronda 1)
+- **Verde:** unánime o consenso.
+- **Ámbar:** meseta, tope, aceptado por ti, detenido o interrumpido.
+- **Rojo:** retroceso, error o todos caídos.
+- **Gris:** en curso o sin ciclo.
+- Con meseta o tope y alguien aprobando, la frase es «Casi listo: 3 de 4 aprueban, falta Codex (nota 8,5). Se paró:
+  la nota no mejoraba.», y se añaden las objeciones abiertas.
+- «Aprueba» es lo mismo que mira el motor: APROBADO, o TERMINADO: SÍ con nota ≥ mínima. Un agente que cayó nunca aprueba.
+- **Cortado no es caído.** PARCIAL siguió en el ciclo; ERROR salió. La línea de sistema actual
+  (`cycleTurns.filter(m => m.failure)`) dice «Fuera del ciclo: Gemini (colgada)» en la editorial, y Gemini volvió y
+  aprobó con 10. El informe los separa. La línea de sistema de los dos motores también: «Fuera del ciclo» solo para
+  ERROR, y «Cortado a medias y siguió: …» para PARCIAL.
+
+## RF5 · El brief punto por punto, sin ✔ que nadie pueda respaldar (Claude, reporte de cierre, ronda 1)
+- **De dónde sale el brief:**
+  - el `docs/BRIEF-*.md` que cita el pedido;
+  - si no, el que citó un pedido anterior de la misma misión;
+  - si ninguno cita uno, el texto del pedido.
+  - El pedido es el último mensaje del usuario que no sea una directiva a mitad de ciclo (`intervention`).
+- **Qué es un punto:** los `###` y las viñetas de primer nivel de las secciones que piden algo. Fuera quedan «Reglas»,
+  «Lo que pide el usuario» (la cita), «Qué ya existe» y «Casos reales». Las sub-viñetas se suman a su punto.
+- **Sin relator:** «○ mencionado, sin confirmar» si los traspasos y reportes nombran sus palabras (o las rutas tocadas),
+  y «✖ nadie lo menciona» si no.
+  - Ante la duda, ○: un ✖ falso asusta al dueño y le cobra una ronda.
+  - ✔ y ◐ solo los pone el relator, con evidencia.
+
+## RF6 · Las opciones llevan su petición exacta; nada se promueve solo (Claude, reporte de cierre, ronda 1)
+- Cada opción trae `metodo`, `ruta`, `cuerpo`, `explica` y `coste`. La UI solo envía. Así la prueba de «los botones
+  mandan la petición correcta» se hace en el servidor y no depende del DOM.
+- **Seguir:** la directiva son los pendientes que no son opcionales; el usuario la edita. Son 2 rondas, o 1 si ya
+  estaba aprobado. El coste son los turnos por los minutos por turno de este ciclo.
+- **Interrumpido:** «Reanudar» (`resume: true`) en lugar de «Seguir».
+- **Aceptar:** solo donde `/accept` lo acepta (meseta, retroceso o tope). En los demás casos sale deshabilitado, con el
+  motivo.
+- **Promover:** solo muestra la guía con los comandos (parche desde la base, aplicar en la app en vivo, `npm test`).
+  No se ejecuta nada.
+- **Pendientes:** «Lo tienes que hacer tú» = lo que menciona push, token, iniciar sesión, grabar, GIF, rama huérfana o
+  promover, y las caídas. Lo demás es «otra ronda». No son tareas:
+  - las negaciones («Nadie hace push»);
+  - el propio cierre («Cerrar el ciclo», «Turno final de Grok…»);
+  - las objeciones que ya están RESUELTAS.
+- En un ciclo aprobado, el «siguiente paso» de cada agente era cerrar: solo quedan lo opcional y lo tuyo.
+
+## RF7 · Nada de secretos en el informe (Claude, reporte de cierre, ronda 1)
+- `limpiar` tapa:
+  - las llaves `om_`, `sk-`, `xai-`, `gh*_`, `AIza…`;
+  - `Bearer …`;
+  - los pares `token|apiKey|secret = valor`.
+- Al final se pasa por todo el JSON, también por campos que nadie pensó en limpiar.
+- Los `*.secreto.json` y `.env` nunca entran en la lista de archivos.
+- Primera versión con un fallo: en una expresión sin grupos, el reemplazo recibía el *offset* como si fuera la clave, y
+  dejaba la llave a la vista detrás. Lo cazó la prueba de caída (`om_` en el detalle de un 402).
+
+## RF8 · Cada modo tiene su cierre (Claude, reporte de cierre, ronda 1; pendiente de completar)
+- **Hecho:** Delphi y Consejo usan el mismo informe, porque sus mensajes llevan veredicto, nota y caídas.
+- **Falta (siguiente ronda):**
+  - En Delphi y Consejo, decir qué borrador quedó en `final/` y de quién.
+  - En una tanda de la Editorial: cuántas propuestas, de qué temas y cuántas están listas en la bandeja. Se calcula
+    en `editorialAlCerrar` y se pasa al informe.
+  - En la Editorial no hay relator: los números lo dicen todo.
+
+
+## RF9 · Interfaz del informe (Codex, ronda 1)
+- De acuerdo con RF1–RF8: servidor para hechos; plantilla sin CLI. Relator opcional para redacción sin cambiar cifras. Gemini decide el diseño y Grok revisa el lenguaje.
+- Tarjeta al final del hilo y acciones del contrato con instrucciones editables antes de relanzar. Exportación y guía de promoción sin ejecutar comandos.
+- Cargas protegidas por misión, época de oficina y secuencia para evitar mezclar informes al navegar.
+- Directiva nueva del dueño sustituye D46: la meseta debe iniciar una ronda de cierre con pendientes numerados. El motor aún usa D46: pendiente funcional prioritario, sin aprobación.
+
+## RF10 · Ronda de cierre automática tras meseta (Gemini, ronda 1)
+- **Directiva del dueño:** «No puede quedar en "estuvo a nada de aprobarse", porque así nada valió. Se debe seguir hasta que se ejecute y se complete; no podemos simplemente parar, hay que continuar hasta terminar y aplicar cambios.»
+- **Regla:** la meseta (D46) ya no detiene la misión en silencio. Al detectarse meseta entre dos rondas completas, si existen objeciones de producto abiertas o puntos del brief en ◐/✖, el servidor extrae estos pendientes y arma una «ronda de cierre» con una directiva de sistema numerada de alta prioridad (`intervention: true`, `rondaCierre: true`), continuando la ejecución automáticamente sin detener el ciclo en falso.
+- **Límite:** si la ronda de cierre no culmina en consenso/aprobación o se alcanza el tope de rondas (`maxRounds`), el ciclo concluye y el informe de cierre muestra arriba de forma destacada «▶ Continuar hasta terminar» con los pendientes pre-escritos para que el usuario relance con un solo clic.
+
+## RF11 · Bloqueo de entorno no atribuible al producto (Gemini, ronda 1)
+- **Problema:** restricciones locales del ejecutor o sandbox de un agente (permisos, `Access denied`, `EPERM`, `EACCES`, `CORTE_NO_CONFIRMADO`, sandbox) no deben bloquear la aprobación de un producto que es correcto en disco ni confundir al dueño con fallas de código.
+- **Implementación:** `isEnvironmentBlock` en `lib/debate.js` detecta estas objeciones por heurística estricta. `blocking(debate, activeIds, { excludeEnvironment: true })` permite que `cycleOutcome` cierre como aprobado/consenso cuando las únicas objeciones abiertas sean de entorno.
+- **Informe de cierre:** `cierre.noLogrado.bloqueosEntorno` aísla estos problemas de las objeciones de producto; `riesgosDe` los describe como advertencias del ejecutor y no como fallas de producto.
+
+## RF12 · Diseño de la tarjeta de cierre, métricas, botones de 44px y mini gráfica (Gemini, ronda 1)
+- **Tarjeta y estructura (`public/cierre.js`, `public/style.css`):**
+  - **Semáforo explícito:** indicador visual con texto y color simultáneos (`● VERDE · Aprobado`, `● ÁMBAR · Casi listo / Detenido`, `● ROJO · Atención / Retroceso`, `● GRIS · En curso`).
+  - **Aviso de despliegue:** banner informativo destacado si los cambios residen en la carpeta del proyecto y aún no han sido aplicados en la app en vivo (`aplicado: false`), con acceso directo a la guía de promoción.
+  - **4 tarjetas KPI:** Archivos (nuevos, modificados, borrados, fuera de git), Líneas y Pruebas (+/− y evolución de tests definidos), Tiempo y Consumo (minutos, turnos, tokens, coste USD), y Estado de Despliegue.
+  - **Mini gráfica SVG:** evolución de notas por ronda para cada agente y la curva de media de revisores frente a la meta (`minScore`).
+  - **Evidencias interactivas:** chips clicables (`data-preview`) para abrir de inmediato cualquier entregable en el visor.
+  - **Botones de 44 px:** objetivos táctiles con altura mínima de 44 px, destaque para `▶ Continuar hasta terminar`, explicaciones y costes claros, editor de instrucciones inline y panel de guía de promoción (`guiaPromover`) con comandos de terminal listos para copiar.
+  - **Responsive y temas:** maquetación a 1 columna sin scroll horizontal en móvil (≤390 px) y 2 columnas en escritorio (1440 px). Soporte completo para tema oscuro y tema claro (`[data-tema="claro"]`).
+  - **Evidencia visual:** capturas generadas mediante `ui-probe.js` en puerto 4425 sin errores ni excepciones: `docs/evidencia/cierre/tarjeta-1440.png` y `tarjeta-390.png`.
+
+## RF13 · Detalles por modo en informe de cierre: Delphi, Consejo y Editorial (Gemini, ronda 1)
+- Completa RF8:
+  - **Delphi:** registra y muestra el borrador consolidado en `final/` (letra) y el autor/equipo (`chat.modoDetalle`), junto a los puntajes promedio.
+  - **Consejo:** registra y muestra la síntesis final de `final/`, indicando el autor/presidente y calificaciones de los evaluadores.
+  - **Editorial:** en tanda de contenido, el informe detalla el total de propuestas cosechadas en la bandeja, las descartadas y los temas cubiertos. En Editorial no se llama al relator (`autor: 'plantilla'`).
+
+## RF14 · El dueño lo lee sin ser programador (Grok, reporte de cierre, ronda 1)
+- La tarjeta va la primera en Reportes. Al final del hilo quedaba debajo de todos los turnos: la captura a 1440 no la
+  mostraba, y lo primero que se veía era el vistazo técnico con rutas de disco. Ese vistazo solo sale si aún no hay informe.
+- La lista de misiones decía `verde ? frase` (la clave cruda y un signo de interrogación). Ahora dice «Verde · …» con un
+  punto de color, y la frase se corta con puntos suspensivos.
+- Lo que se lee evita la jerga del equipo: «fuera de git», «s/m», «plantilla», «sandbox», «commit», «diff», «orquestador»,
+  «promover a producción». Los botones conservan el nombre del brief. «Casi listo: 3 de 4…» se queda: es la frase que
+  pidió el brief cuando el ciclo sí se detuvo. El aviso de meseta ya no dice que otra pasada no serviría: manda a
+  «Continuar hasta terminar».
+- El turno del relator (RF2) no está cableado: `fusionarRelato` no tiene llamador en `server.js`. #D20 lo da por
+  resuelto y no lo está. Sin ese turno, «qué se logró» sigue en palabras del agente y un punto del pedido no puede pasar
+  de ○ a ✔.
+## RF15 · El turno del relator ya se lanza al cerrar (Claude, reporte de cierre, ronda 2)
+Responde a #3 (Grok): `fusionarRelato` no tenía llamador. Ahora `server.js` lo lanza en el `finally` de los dos ciclos
+(relevo y Delphi/Consejo), justo después de `generarCierre` y de avisar `cycle-ended`.
+| Opción | A favor | En contra |
+|---|---|---|
+| Relator dentro del ciclo (último turno antes de cerrar) | El estado «en curso» lo cubre | Retrasa el aviso de fin; un relator colgado retiene la misión |
+| Relator después, fuera de `running` | El cierre y su aviso salen ya; la tarjeta se mejora sola a los segundos | Puede coincidir con un ciclo nuevo |
+- **Decisión:** después, fuera de `running`, en su propio mapa `relatores`.
+  - Quién relata: `elegirRelator`. En Consejo, el presidente. Si no, el de mejor nota final que siga en el equipo. Con
+    empate gana el que aprueba y, si siguen empatados, el último que habló. Los bots por webhook quedan fuera porque no
+    leen el disco. En Editorial no hay relator, ni cuando lo detuvo el usuario o no hubo ciclo.
+  - Qué se le pide: `.office/relator.md` (`briefRelator`). No tocar archivos y devolver solo un bloque JSON. Los números no
+    se le pasan.
+  - Se descarta si cambia archivos del trabajo (instantánea antes y después), si falla o tarda (`relatorMinutes`, por
+    defecto 3; con 0 no se lanza), si no devuelve JSON (`leerRelato`) o si empieza otro ciclo. Un ciclo nuevo corta al
+    relator (`cortarRelator`).
+  - El relato se guarda en `chat.relato`, atado al id del ciclo. `generarCierre` lo vuelve a aplicar (`conRelato`), así
+    sobrevive a «Aceptar así» y a Exportar. Tras «Aceptar así» manda la frase del servidor. Un relato de otro ciclo no
+    se aplica.
+  - El relator **no escribe en el chat**: el último mensaje del ciclo sigue siendo su resumen, porque la app y las pruebas lo
+    leen así. Si no vale, el informe lo dice en la línea «quién lo redactó» (`relatoFallo`, con su motivo en es y en).
+  - Los textos nuevos van en el objeto `L` de `lib/cierre.js` (es/en: `relatorFallo`, `relatorMotivo`), como pide la
+    directiva i18n. El encargo al relator (`relator.md`) va en español, como todos los briefs de agentes, y le dice en qué
+    idioma escribir.
+- Pruebas: unidad (elección, brief, lectura del JSON, `conRelato`, fallo) y de punta a punta con el agente falso, que
+  relata bien, toca un archivo o no devuelve JSON. Suite **180/180** (`docs/evidencia/cierre/pruebas-claude.txt`).
+
+
+## RF16 · No confundir permisos del producto con límites del ejecutor (Codex, ronda 2)
+- Una palabra como «permisos», EPERM o Access denied no demuestra un bloqueo del agente: también describe fallos de autorización o exportación del producto. La exclusión exige atribuir la restricción al entorno/ejecutor; `bloqueoEntorno: false` prevalece sobre la heurística. Regresión con cuatro objeciones de producto que deben seguir bloqueando.
+- Los mensajes de activación, objeciones y puntos pendientes de la ronda de cierre viven ahora en `lib/cierre.js`, objeto `L` con claves ES/EN, seleccionadas por el idioma del pedido. No se modifica la política de continuación de RF10.
+
+## RF17 · El diccionario es/en lo usa el informe que ve el dueño (Grok, reporte de cierre, ronda 2)
+- **Qué faltaba.** Las claves es/en existían, y las pruebas solo comprobaban que estuvieran. La tarjeta, los riesgos, el Markdown y el mensaje de la ronda de cierre en el chat seguían en español, o mezclaban los dos idiomas («Almost there… (cayó)», «nota», «objeción(es)»). El plural de programador `(es)` / `(s)` se leía en frases del dueño.
+- **Decisión.** Un solo archivo, `public/cierre-textos.js`: lo exige el navegador y lo exige Node (`module.exports` y `window.CIERRE_TEXTOS`). `lib/cierre.js` lo carga. `index.html` lo pone antes de `cierre.js`. `server.js` arma el aviso de meseta con `mensajeRondaCierre` y el idioma del pedido. No hay una segunda copia de las frases.
+- **Qué se quedó igual a propósito.** En español se conservan las frases que ya fijaron las pruebas y el brief: «Casi listo: 3 de 4…», «▶ Continuar hasta terminar», «hasta 8 turnos», «cayó (sin saldo)», «lo cortaron a medias (colgada)», «Revisor lo reescribió en palabras llanas», «# Informe de cierre». En la tarjeta en español el consumo se dice «de consumo»; en inglés, «tokens». Los comandos para copiar al promover siguen en git: el dueño los pega, no se ejecutan solos. Lo que escribió un agente se queda en su idioma.
+- **Qué se aclaró.** Donde el dueño leía «el servidor» en el informe, ahora lee «la aplicación» (inglés: «the app»). El estado de una objeción se dice «abierta» / «en disputa» o «open» / «in dispute», no la clave cruda. El veredicto del agente en la tarjeta sale en palabras («cambios», «changes»), no `CAMBIOS`. La causa de una caída usa el `kind` si existe; en español el texto coincide con la etiqueta que ya se leía en minúsculas.
+- **Fuera de este archivo.** La línea de sistema del ciclo («2 ronda(s)…») se cita debajo del veredicto tal como la escribió el ciclo. Traducirla movería el resumen del chat, que otras pruebas fijan en español. El veredicto del informe, encima, ya está en el idioma del pedido.
+
+## RF18 · El informe de cierre entra en la versión pública, en inglés por defecto (Claude, integración, ronda 1)
+- **Origen:** commit 792054c de la copia «reporte de cierre», fusionado aquí con `git merge-file` contra su base
+  (b079783). Conflictos en `public/app.js`, `public/charts.js`, `server.js` y `tests/graficas.test.js`: manda la
+  estructura i18n de esta copia (`t('…')`, `i18n.t('…')`) y el comportamiento de la otra (ronda de cierre, cortados a
+  medias que siguen, `modoDetalle`, informe arriba en Reportes, `cierre-updated`).
+- **Textos:** `public/cierre-textos.js` ya no tiene frases. Las 265 claves `cierre.*` viven en `public/i18n/en.json` y
+  `es.json`, con la prueba de paridad de siempre. El archivo solo les da la forma que usan la tarjeta y `lib/cierre.js`
+  (`CIERRE_TEXTOS.en.seguirN(2)`): huecos con nombre, plural `.one`/`.other` y unas pocas variantes. Comprobado que da
+  el mismo texto que el original en los 832 casos probados; solo cambia, a propósito, «▶ Continue until done».
+- **Idioma:** el informe va en el idioma del pedido con el detector de la app (`i18n.detectLang`); sin pistas, el de la
+  app, que por defecto es el inglés. Antes caía al español. El encargo del relator (`relator.md`) también sale del
+  diccionario y va en el idioma del informe; los nombres de los campos del JSON no se traducen.
+- **Traspasos en inglés:** las secciones «What I did / Recommended next step / Open objections» cuentan igual que las
+  españolas (`handoff.sec.*`), y las heurísticas de logros, pendientes y bloqueos de entorno reconocen las dos lenguas.
+- **«▶ Continue until done» arriba:** si el equipo se paró sin aprobar (o hay que reanudar), el botón va justo debajo del
+  veredicto, con su propio editor; también sigue en «Your options».
+- **Capturas:** la tarjeta en inglés a 1440 y 390 px en `docs/img/`; las de `docs/evidencia/cierre/` y los registros de
+  pruebas de la otra copia no se traen (eran en español y con rutas de su equipo).

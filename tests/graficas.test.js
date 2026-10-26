@@ -49,7 +49,7 @@ test('resumen: por qué terminó, cifras y, en lenguaje llano, qué se hizo y qu
   assert.match(s, /(?:Cambiaron 2 archivos de trabajo|2 work file\(s\) changed)/);
   assert.match(s, /(?:Entregable principal|Main deliverable): final\/informe\.md/);
   assert.match(s, /(?:Qué falta|What is pending)\. #1 Faltan las fuentes \((?:de|by) Gemini\)/);
-  assert.match(s, /(?:decide si la aceptas|decide to accept)/);
+  assert.match(s, /(?:Continuar hasta terminar|Continue until done)/);
   // Cada final con su motivo.
   assert.equal(Charts.outcomeOf(chat('unanime')), 'unanime');
   assert.equal(Charts.outcomeOf(chat('agotado')), 'agotado');

@@ -77,6 +77,9 @@
       if (e.target.matches('select[data-lang-select]')) setLang(e.target.value);
     });
   })();
-  root.I18N = { ...api, t, apply, setLang, ready, get lang() { return lang; } };
+  // dict/load: para textos que van en otro idioma que la interfaz (el informe de cierre va en el del pedido).
+  const dict = l => dicts[norm(l)] || null;
+  const loadLang = l => load(norm(l) || DEFAULT).catch(() => {});
+  root.I18N = { ...api, t, apply, setLang, ready, dict, load: loadLang, get lang() { return lang; } };
   root.t = t;
 })(globalThis);

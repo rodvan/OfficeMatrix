@@ -11,7 +11,7 @@ const fake = path.join(__dirname, 'helpers', 'fake-agent.js');
 const agent = (id, name, script) => ({ id, name, role: 'Probador', color: '#fff', cmd: 'node', stream: 'text', args: [fake, id, script, 'text', '{prompt}'] });
 fs.writeFileSync(path.join(home, 'agents.json'), JSON.stringify({
   agents: [agent('autor', 'Autor', 'autor'), agent('revisor', 'Revisor', 'revisor'), agent('intruso', 'Intruso', 'revisor')],
-  maxRounds: 3, minScore: 9, turnTimeoutMinutes: 1, idleTimeoutMinutes: 0,
+  maxRounds: 3, minScore: 9, turnTimeoutMinutes: 1, relatorMinutes: 0, idleTimeoutMinutes: 0,
 }));
 fs.mkdirSync(path.join(home, 'memoria'), { recursive: true });
 fs.writeFileSync(path.join(home, 'memoria', 'lecciones.md'), '# Lecciones aprendidas\n\n- Secreto del edificio: la clave del wifi.\n');
