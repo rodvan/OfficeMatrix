@@ -40,3 +40,44 @@ test('tarjeta: descarte y cambios pendientes explican su estado sin botones de d
     assert.match(html, estado === 'descartada' ? /(?:Copia literal|Literal copy)/ : /(?:El equipo está ajustando|team is adjusting)/i);
   }
 });
+test('rutinas: muestra informe con ganadores, semillas y fallos con cayeron e i18n', () => {
+  const { ctx, nodes } = setup();
+  const testData = {
+    resumen: {
+      regla: { zona: 'America/Mexico_City' },
+      rutinas: [
+        {
+          tipo: 'radar',
+          activa: true,
+          cadaMin: 60,
+          equipo: ['grok', 'gemini'],
+          turnosHoy: 4,
+          topeDiario: 24,
+          ultima: {
+            inicio: '2026-10-26T08:00:00Z',
+            informe: { ok: true, semillas: 3, cayeron: ['claude'] }
+          }
+        },
+        {
+          tipo: 'desempeno',
+          activa: true,
+          horas: ['08:00'],
+          turnosHoy: 8,
+          topeDiario: 10,
+          avisoTope: '8 / 10 turnos hoy',
+          ultima: {
+            inicio: '2026-10-26T08:00:00Z',
+            informe: { ok: false, motivo: 'timeout' }
+          }
+        }
+      ]
+    }
+  };
+  ctx.renderRoutines(testData);
+  const html = nodes.get('edRoutinesGrid').innerHTML;
+  assert.match(html, /data-routine="radar"/);
+  assert.match(html, /(?:seeds|semillas)/);
+  assert.match(html, /claude/);
+  assert.match(html, /timeout/);
+  assert.match(html, /ed-routine-cap warn/);
+});

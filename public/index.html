@@ -19,6 +19,7 @@
     <div class="top-right">
       <button type="button" class="notify-btn" id="setupBtn" data-i18n="ui.setupBtn">GETTING STARTED</button>
       <button type="button" class="notify-btn" id="viewBtn">🛸 <span class="lbl" data-i18n="nave.view.ship">SHIP</span></button>
+      <a href="/editorial" class="notify-btn" id="editorialTopBtn" style="text-decoration:none" data-i18n="ui.editorialBtn">📰 EDITORIAL</a>
       <span class="seg lang-seg" id="langSeg" role="group" aria-label="Language" data-i18n-aria-label="lang.label" data-i18n-hover="lang.hover"><button type="button" data-lang="en" class="on" aria-pressed="true" translate="no">EN</button><button type="button" data-lang="es" aria-pressed="false" translate="no">ES</button></span>
       <button type="button" class="notify-btn" id="themeBtn" aria-label="Switch light or dark theme" data-i18n-aria-label="ui.themeAria">☀</button>
       <button type="button" class="notify-btn" id="notifyBtn">🔕 <span class="lbl" data-i18n="ui.notify.label">ALERTS</span></button>
@@ -321,6 +322,33 @@
           <input id="botKey" class="field" type="password" placeholder="webhook key (whsec_… or the routine's)" data-i18n-placeholder="ui.of.botKeyPh" autocomplete="new-password">
           <button type="button" id="botAddBtn" class="btn ghost small" data-i18n="ui.of.botAdd">＋ ADD BOT</button>
         </div>
+      </section>
+      <section id="officeDiscord" class="office-keys" hidden>
+        <div class="label"><span translate="no">Discord</span> <small class="muted" data-i18n="ui.dc.hint">— this office's own bot: it only talks about this office. The Ship's bot coordinates every office (docs/DISCORD.md)</small></div>
+        <p class="dc-state"><span id="dcState" class="muted"></span> <a id="dcInvite" class="btn ghost small" target="_blank" rel="noopener noreferrer" hidden data-i18n="ui.dc.invite">INVITE THE BOT TO YOUR SERVER</a></p>
+        <details class="bot-guide">
+          <summary data-i18n="ui.dc.guide">Step by step</summary>
+          <ol>
+            <li data-i18n="ui.dc.g1">Open discord.com/developers/applications → New Application, named after this office (e.g. ViralHunt).</li>
+            <li data-i18n="ui.dc.g2">Bot → Reset Token → copy it and paste it below. Never paste it in a chat.</li>
+            <li data-i18n="ui.dc.g3">Save. Then click Invite the bot and choose your server.</li>
+            <li data-i18n="ui.dc.g4">In Discord turn on Developer Mode (User Settings → Advanced). Right-click a channel or a person → Copy ID.</li>
+            <li data-i18n="ui.dc.g5">Mention the bot once (@bot hi): it answers with your ID. Paste it in Authorized users and save.</li>
+            <li data-i18n="ui.dc.g6">Talk to it: @bot @grok find trends about Artemis. Without @name, the office's chat host answers.</li>
+          </ol>
+        </details>
+        <label><span data-i18n="ui.dc.token">Bot token</span> <input id="dcToken" class="field" type="password" autocomplete="new-password" placeholder="paste the bot token" data-i18n-placeholder="ui.dc.tokenPh"></label>
+        <label><span data-i18n="ui.dc.users">Authorized users (Discord IDs, separated by commas)</span> <input id="dcUsers" class="field" autocomplete="off" placeholder="123456789012345678"></label>
+        <label><span data-i18n="ui.dc.channels">Channels it listens to (IDs; empty = any channel it can see)</span> <input id="dcChannels" class="field" autocomplete="off"></label>
+        <label><span data-i18n="ui.dc.alerts">Alerts channel (ID)</span> <input id="dcAlerts" class="field" autocomplete="off"></label>
+        <div class="dc-checks">
+          <label><input type="checkbox" id="dcAvMis"> <span data-i18n="ui.dc.avMissions">Finished missions</span></label>
+          <label><input type="checkbox" id="dcAvFail"> <span data-i18n="ui.dc.avFailures">AIs that fail</span></label>
+          <label><input type="checkbox" id="dcAvProp"> <span data-i18n="ui.dc.avProposals">New editorial proposals (with image and buttons)</span></label>
+          <label id="dcShipWrap"><input type="checkbox" id="dcShip"> <span data-i18n="ui.dc.shareShip">Share with the Ship's bot</span></label>
+          <label><input type="checkbox" id="dcOn"> <span data-i18n="ui.dc.active">Bot on</span></label>
+        </div>
+        <p class="dc-actions"><button type="button" id="dcSave" class="btn ghost small" data-i18n="ui.save">SAVE</button> <button type="button" id="dcTest" class="btn ghost small" data-i18n="ui.dc.test">SEND A TEST</button> <button type="button" id="dcRemove" class="btn ghost small" data-i18n="ui.dc.remove">REMOVE BOT</button></p>
       </section>
       <div class="composer-row"><span class="hint muted" id="officeHint"></span><button type="submit" class="btn primary" id="officeSave" data-i18n="ui.of.create">CREATE OFFICE</button></div>
     </form>

@@ -34,7 +34,10 @@ const { createBots, MAX_BODY: BOT_MAX_BODY } = require('./lib/bots');
 const { createOfficeChat, redact, recipients, draftMission, chatPrompt, memoryExcerpt, readOnlyArgs, slug: chatSlug } = require('./lib/chat-oficina');
 const editorialLib = require('./lib/editorial');
 const { createViralHunt } = require('./lib/viralhunt');
+const rutinasLib = require('./lib/rutinas');
+const cadenaLib = require('./lib/cadena');
 const cierreLib = require('./lib/cierre');
+const { createDiscord } = require('./lib/discord-oficinas');
 
 const ROOT = __dirname;
 const DATA = process.env.OFFICEMATRIX_HOME ? path.resolve(process.env.OFFICEMATRIX_HOME) : ROOT;
@@ -55,6 +58,22 @@ const traspasos = createTraspasos(DATA, oficinas, CONTROL_DIR); // el único cru
 const manifiestos = createManifests(DATA, CONTROL_DIR);
 const bots = createBots(DATA, oficinas); // Grok Bots externos por webhook (lib/bots.js; la puerta pública es puerta-bots.js)
 const officeChat = createOfficeChat(oficinas); // chat de oficina, aparte de las misiones (lib/chat-oficina.js)
+// Un bot de Discord por oficina (lib/discord-oficinas.js, docs/DISCORD.md): habla solo con su oficina; el de la Nave coordina.
+const discordBots = createDiscord({
+  oficinas, EDIFICIO, t: (k, v) => i18n.t(k, v),
+  deps: {
+    chat: (office, texto, { autor } = {}) => runOfficeChat(office, texto, { autor, sinArchivos: true }),
+    aprobar: (office, pid, input) => aprobarPropuesta(office, pid, input),
+    rechazar: (office, pid, input) => rechazarPropuesta(office, pid, input),
+    propuestas: office => (editorial.regla(office) ? editorial.galeria(office, {}) : []),
+    archivo: (office, pid, nombre) => editorial.archivo(office, pid, nombre),
+    officeOfChat: chatId => { try { return oficinas.officeOf(chatId); } catch { return null; } },
+    resumenNave: () => resumenNave(),
+    onState: office => broadcast({ type: 'discord-updated', oficina: office }),
+  },
+});
+// Las llaves que nunca se escriben en el chat ni se reenvían: las de los bots y el token de Discord de la oficina.
+const secretsOf = office => [...bots.secretValues(office), ...discordBots.secretos(office)];
 const chatBusy = new Set();
 const CHAT_CLI_MS = Number(process.env.OFFICEMATRIX_CHAT_CLI_MS) || 20000;
 const CHAT_BOT_MS = Number(process.env.OFFICEMATRIX_CHAT_BOT_MS) || 20000;
@@ -346,6 +365,7 @@ function projectDocs(PROJECTS_DIR) {
 
 const clients = new Set();
 function broadcast(event) {
+  if (event.type !== 'activity' && event.type !== 'progress' && event.type !== 'office-chat') { try { discordBots.alEvento(event); } catch { /* Discord nunca frena la app */ } }
   const data = `data: ${JSON.stringify(event)}\n\n`;
   for (const res of clients) {
     try { res.write(data); } catch { clients.delete(res); }
@@ -494,7 +514,7 @@ function chatFailure(stderr, extra = {}) {
 }
 
 async function runChatBot(office, quien, mensaje, history) {
-  const secrets = bots.secretValues(office);
+  const secrets = secretsOf(office);
   if (quien.sinLlave) return { texto: '', fallo: chatFailure(`[bot-webhook] ${i18n.t('bots.err.noWebhook')}`) };
   const ttl = CHAT_BOT_MS;
   const turn = bots.openTurn({ chat: true, oficina: office, bot: quien.id }, ttl);
@@ -522,7 +542,7 @@ async function runChatBot(office, quien, mensaje, history) {
   return { texto, fallo: null };
 }
 
-function runChatCli(office, quien, mensaje, history) {
+function runChatCli(office, quien, mensaje, history, { sinArchivos = false } = {}) {
   const agent = configFor(office).agents.find(a => a.id === quien.id && !a.bot);
   if (!agent) return Promise.resolve({ texto: '', fallo: chatFailure(i18n.t('server.chat.empty', { name: quien.nombre })) });
   const prompt = chatPrompt({
@@ -534,7 +554,7 @@ function runChatCli(office, quien, mensaje, history) {
   const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), 'om-chat-'));
   fs.writeFileSync(path.join(sandbox, 'chat-prompt.md'), prompt);
   const base = Array.isArray(agent.chatArgs) ? { ...agent, args: agent.chatArgs } : agent;
-  const args = readOnlyArgs(agent.stream, modelos.argsFor(base, modelos.pick(agent))).map(a => String(a).replaceAll('{prompt}', CHAT_ARGV));
+  const args = readOnlyArgs(agent.stream, modelos.argsFor(base, modelos.pick(agent)), { sinArchivos }).map(a => String(a).replaceAll('{prompt}', CHAT_ARGV));
   const timeoutMs = CHAT_CLI_MS;
   return new Promise(resolve => {
     let env = { ...process.env };
@@ -554,7 +574,7 @@ function runChatCli(office, quien, mensaje, history) {
       clearTimeout(timer);
       fs.rmSync(sandbox, { recursive: true, force: true });
       parser.end();
-      const texto = redact(parser.finalText(), bots.secretValues(office));
+      const texto = redact(parser.finalText(), secretsOf(office));
       if (timedOut || code !== 0 || !texto) {
         const fallo = classifyFailure({ code: code || 1, stdout, stderr, report: texto, timedOut, timeoutMinutes: timeoutMs / 60000 })
           || chatFailure(stderr || i18n.t('server.chat.empty', { name: quien.nombre }));
@@ -567,7 +587,7 @@ function runChatCli(office, quien, mensaje, history) {
       const text = stripAnsi(c.toString());
       if (stdout.length < 2e5) stdout += text;
       parser.feed(text);
-      const safe = redact(parser.usedStreaming ? parser.finalText() : stdout, bots.secretValues(office));
+      const safe = redact(parser.usedStreaming ? parser.finalText() : stdout, secretsOf(office));
       broadcast({ type: 'office-chat', oficina: office, fase: 'delta', quien: { sceneId: quien.sceneId, nombre: quien.nombre }, texto: safe.slice(-500) });
     });
     proc.stderr.on('data', c => { if (stderr.length < 2e4) stderr += stripAnsi(c.toString()); });
@@ -576,16 +596,16 @@ function runChatCli(office, quien, mensaje, history) {
   });
 }
 
-async function runOfficeChat(office, texto) {
+async function runOfficeChat(office, texto, { autor = null, sinArchivos = false } = {}) {
   if (chatBusy.has(office)) { const err = new Error(i18n.t('chat.err.busy')); err.status = 409; throw err; }
   chatBusy.add(office);
   try {
     const members = chatMembers(office);
-    const secrets = bots.secretValues(office);
+    const secrets = secretsOf(office);
     const clean = redact(String(texto || ''), secrets).trim();
     if (!clean) { const err = new Error(i18n.t('server.error.taskRequired')); err.status = 400; throw err; }
     const route = recipients(clean, members, officeChat.readSettings(office).anfitrion);
-    const userMsg = officeChat.append(office, { autor: { tipo: 'owner', id: 'owner', nombre: 'You' }, texto: clean, menciones: route.quienes.map(q => q.mencion) });
+    const userMsg = officeChat.append(office, { autor: { tipo: 'owner', id: 'owner', nombre: autor || 'You' }, texto: clean, menciones: route.quienes.map(q => q.mencion) });
     broadcast({ type: 'office-chat', oficina: office, fase: 'mensaje', mensaje: userMsg });
     const produced = [userMsg];
     if (!route.quienes.length) {
@@ -600,7 +620,7 @@ async function runOfficeChat(office, texto) {
     for (const quien of route.quienes) {
       broadcast({ type: 'office-chat', oficina: office, fase: 'hablando', quien: { sceneId: quien.sceneId, nombre: quien.nombre } });
       const history = officeChat.list(office, secrets);
-      const result = quien.tipo === 'bot' ? await runChatBot(office, quien, clean, history) : await runChatCli(office, quien, clean, history);
+      const result = quien.tipo === 'bot' ? await runChatBot(office, quien, clean, history) : await runChatCli(office, quien, clean, history, { sinArchivos });
       const msg = officeChat.append(office, {
         autor: { tipo: quien.tipo, id: quien.id, nombre: quien.nombre, avatar: quien.avatar, puesto: quien.puesto, sceneId: quien.sceneId },
         texto: redact(result.texto || '', secrets),
@@ -1461,7 +1481,7 @@ function stopCycle(chatId) {
 
 // ---------- Servidor HTTP ----------
 
-const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.ico': 'image/x-icon' };
+const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.ico': 'image/x-icon', '.zip': 'application/zip' };
 
 function sendJson(res, status, body) {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
@@ -1549,7 +1569,12 @@ function interveneMission(id, body, { by = { agentId: 'user', agentName: 'Usuari
 // ---------- Editorial continua (lib/editorial.js, lib/viralhunt.js; D66-ED a D70-ED) ----------
 
 // Archivos que el servidor deja en la misión antes del primer turno (la investigación de ViralHunt, la propuesta a cambiar).
-function prepararCarpeta(dir, { archivos = {}, copiar = null } = {}) {
+function prepararCarpeta(dir, { archivos = {}, copiar = null, binarios = [] } = {}) {
+  for (const b of binarios) {
+    const to = path.join(dir, b.to);
+    fs.mkdirSync(path.dirname(to), { recursive: true });
+    fs.copyFileSync(b.from, to);
+  }
   for (const [rel, content] of Object.entries(archivos)) {
     const file = path.join(dir, rel);
     fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -1567,6 +1592,16 @@ const lanzando = new Set(); // oficinas con una tanda en preparación (la invest
 const aprobando = new Set(); // propuestas enviándose a ViralHunt (un doble clic no crea dos posts)
 const tandaAbierta = office => lanzando.has(office) || (editorial.estado(office).tandas || []).some(t => !t.fin && running.has(t.chatId));
 
+const rutinaDe = (regla, tipo) => (regla?.rutinas || []).find(r => r.tipo === tipo) || null;
+// El equipo de una rutina: el suyo si lo tiene; si no, el de la regla. Siempre dentro de los que la regla conoce.
+const equipoRutina = (regla, rut) => {
+  const ids = rut?.equipo?.length ? rut.equipo : regla.equipo.map(e => e.id);
+  const eq = regla.equipo.filter(e => ids.includes(e.id));
+  return eq.length ? eq : regla.equipo;
+};
+// Las referencias visuales de la marca viajan a la misión (marca/<archivo>) para el generador de imágenes (§4).
+const archivosMarca = (office, regla) => (regla.marca?.referencias || []).map(f => path.join(editorial.dir(office), 'marca', f)).filter(f => fs.existsSync(f));
+
 async function lanzarTanda(office, { franja = null, manual = false } = {}) {
   const o = oficinas.read(office);
   const regla = editorial.regla(office);
@@ -1580,36 +1615,173 @@ async function lanzarTanda(office, { franja = null, manual = false } = {}) {
     if (viralhunt.hasToken(office)) {
       investigacion = await viralhunt.investigar(office, regla).catch(err => ({ pedido: new Date().toISOString(), tendencias: [], mejorHora: [], errores: [{ llamada: 'investigación', error: err.message }] }));
     }
-    const text = editorialLib.briefTanda({ regla, oficina: o, franja, gusto: editorial.gusto(office), investigacion });
+    const rut = rutinaDe(regla, 'redaccion');
+    const equipo = equipoRutina(regla, rut);
+    const semillas = editorial.semillas.elegir(office, regla.propuestasPorTanda);
+    const text = editorialLib.briefTanda({ regla: { ...regla, equipo }, oficina: o, franja, gusto: editorial.gusto(office), investigacion, semillas });
     const chat = createMission(office, {
-      text, config: { mode: 'auto', maxRounds: regla.rondas, workflow: regla.modo, team: regla.equipo.map(e => ({ id: e.id, role: e.rol || undefined })) },
+      text, config: { mode: 'auto', maxRounds: regla.rondas, workflow: regla.modo, team: equipo.map(e => ({ id: e.id, role: e.rol || undefined })) },
     }, {
-      editorial: { tipo: 'tanda', franja: franja?.clave || null, manual },
-      archivos: investigacion ? { 'investigacion/viralhunt.json': JSON.stringify(investigacion, null, 2) } : {},
+      editorial: { tipo: 'tanda', rutina: 'redaccion', franja: franja?.clave || null, manual, semillas: semillas.map(s => s.id) },
+      archivos: {
+        ...(investigacion ? { 'investigacion/viralhunt.json': JSON.stringify(investigacion, null, 2) } : {}),
+        ...(semillas.length ? { 'investigacion/semillas.json': JSON.stringify(semillas, null, 2) } : {}),
+      },
+      binarios: archivosMarca(office, regla).map(f => ({ from: f, to: path.join('marca', path.basename(f)) })),
     });
+    if (semillas.length) editorial.semillas.marcar(office, semillas.map(s => s.id), 'en-tanda', { chatId: chat.id });
     editorial.apuntarTanda(office, { franja, chatId: chat.id, manual });
+    const coste = rutinasLib.costeEstimado({ tipo: 'redaccion', equipo: equipo.map(e => e.id) });
+    editorial.rutinas.empezar(office, 'redaccion', { clave: franja?.clave || `manual:${new Date().toISOString()}`, manual, chatId: chat.id, zona: regla.zona, coste });
     oficinas.bitacora(office, `Editorial: tanda ${manual ? 'manual' : franja?.clave} lanzada (misión ${chat.id})`);
     broadcast({ type: 'editorial-updated', oficina: office });
     return chat;
   } finally { lanzando.delete(office); }
 }
 
-// El reloj: cada minuto mira si a alguna oficina le toca su franja. Tras dormir, lanza la última una vez.
+// Radar (§6): misión corta (1 a 3 temas que suben). Sus temas pasan a editorial/radar/<fecha>.json y a las semillas.
+async function lanzarRadar(office, { franja = null, manual = false } = {}) {
+  const o = oficinas.read(office);
+  const regla = editorial.regla(office);
+  if (!regla) throw Object.assign(new Error(i18n.t('server.error.editorialNoRuleYet')), { status: 409 });
+  if (rutinaAbierta(office, 'radar')) throw Object.assign(new Error(i18n.t('server.error.routineOpen')), { status: 409, codigo: 'rutina_abierta' });
+  const rut = rutinaDe(regla, 'radar');
+  const clave = franja?.clave || `manual:${new Date().toISOString()}`;
+  if (franja) editorial.rutinas.tomar(office, 'radar', franja.clave);
+  let investigacion = null;
+  if (viralhunt.hasToken(office)) investigacion = await viralhunt.investigar(office, { ...regla, redes: [] }).catch(() => null);
+  const equipo = equipoRutina(regla, rut);
+  const ganadores = editorial.ultimoDia(office, 'desempeno')?.ganadores || [];
+  const chat = createMission(office, {
+    text: editorialLib.briefRadar({ regla, oficina: o, cantidad: rut?.cantidad || 3, investigacion, ganadores }),
+    config: { mode: 'rondas', maxRounds: 1, workflow: 'relevo', team: equipo.slice(0, 2).map(e => ({ id: e.id, role: e.rol || undefined })) },
+  }, {
+    editorial: { tipo: 'radar', rutina: 'radar', franja: clave, manual },
+    archivos: investigacion ? { 'investigacion/viralhunt.json': JSON.stringify(investigacion, null, 2) } : {},
+  });
+  editorial.rutinas.empezar(office, 'radar', { clave, manual, chatId: chat.id, zona: regla.zona, coste: rutinasLib.costeEstimado({ tipo: 'radar', equipo: equipo.map(e => e.id) }) });
+  broadcast({ type: 'editorial-updated', oficina: office });
+  return chat;
+}
+
+// ---------- Rutinas del servidor: sin agentes, solo ViralHunt con el token (§6) ----------
+const hoyEn = zona => editorialLib.diaLocal(zona, Date.now());
+
+// Desempeño: stats.php → ganadores frente a la media. Con ready:false lo dice y no inventa números.
+async function rutinaDesempeno(office, regla) {
+  const stats = await viralhunt.stats(office, regla);
+  const d = cadenaLib.analizarDesempeno(stats, editorial.propuestas(office), { zona: regla.zona, lang: editorialLib.briefLangOf(regla) });
+  editorial.guardarDia(office, 'desempeno', hoyEn(regla.zona), d);
+  return { ready: d.ready, ganadores: d.ganadores.length, motivo: d.motivo };
+}
+
+// Más como este: por cada ganador, search.php con su tema → semillas con su origen. Sin ganadores, la cadena sigue con el radar.
+async function rutinaMasComoEste(office, regla) {
+  const d = editorial.ultimoDia(office, 'desempeno');
+  if (!d?.ganadores?.length) return { semillas: 0, motivo: i18n.t('server.routine.noWinners') };
+  const busquedas = {};
+  const errores = [];
+  for (const g of d.ganadores.slice(0, 3)) {
+    if (!g.tema) continue;
+    try { busquedas[g.tema] = cadenaLib.filasBusqueda(await viralhunt.buscar(office, g.tema.split(/\s+/).slice(0, 4).join(' '))); } catch (err) { errores.push(err.message); }
+  }
+  const nuevas = editorial.semillas.anadir(office, cadenaLib.semillasMasComoEste(d, busquedas));
+  return { semillas: nuevas.length, errores };
+}
+
+// Aprender: edit_log desde la última lectura → gusto; y el estado de vuelta de los posts aprobados (publicado o no).
+async function rutinaAprender(office, regla, st) {
+  const since = st?.ultima?.inicio && st.ultima.informe?.ok ? st.ultima.inicio : new Date(Date.now() - 7 * 864e5).toISOString();
+  const log = await viralhunt.editLog(office, since);
+  let ediciones = 0;
+  if (log.disponible && log.filas.length) {
+    const prev = editorial.ediciones(office);
+    const filas = cadenaLib.unirEdiciones(prev?.filas, log.filas);
+    ediciones = Math.max(0, filas.length - (prev?.filas?.length || 0));
+    if (ediciones) editorial.guardarEdiciones(office, { ...cadenaLib.resumirEdiciones(filas), filas });
+  }
+  let revisados = 0;
+  for (const p of editorial.propuestas(office).filter(x => x.estado === 'aprobada' && x.viralhunt?.id != null && x.viralhunt?.remoto?.status !== 'published').slice(0, 10)) {
+    try { editorial.marcar(office, p.id, { viralhunt: { ...p.viralhunt, remoto: await viralhunt.estadoPost(office, p.viralhunt.id) } }, { evento: 'estado-viralhunt' }); revisados++; } catch { /* la siguiente pasada lo reintenta */ }
+  }
+  return { ediciones, editLog: log.disponible, revisados, motivo: log.disponible ? null : log.motivo };
+}
+
+const RUTINAS_SERVIDOR = { desempeno: rutinaDesempeno, 'mas-como-este': rutinaMasComoEste, aprender: rutinaAprender };
+const ejecutandoServidor = new Set(); // `${office}/${tipo}`
+
+async function ejecutarRutinaServidor(office, tipo, { franja = null, manual = false } = {}) {
+  const regla = editorial.regla(office);
+  const key = `${office}/${tipo}`;
+  if (ejecutandoServidor.has(key)) throw Object.assign(new Error(i18n.t('server.error.routineOpen')), { status: 409, codigo: 'rutina_abierta' });
+  ejecutandoServidor.add(key);
+  const st = editorial.rutinas.de(office, tipo);
+  editorial.rutinas.empezar(office, tipo, { clave: franja?.clave || `manual:${new Date().toISOString()}`, manual, zona: regla.zona });
+  broadcast({ type: 'editorial-updated', oficina: office });
+  let informe;
+  try {
+    if (!viralhunt.hasToken(office)) informe = { ok: false, motivo: i18n.t('server.error.viralhuntToken') };
+    else informe = { ok: true, ...(await RUTINAS_SERVIDOR[tipo](office, regla, st)) };
+  } catch (err) {
+    informe = { ok: false, motivo: err.message }; // nunca se apaga: la siguiente franja lo reintenta
+  } finally { ejecutandoServidor.delete(key); }
+  editorial.rutinas.terminar(office, tipo, informe, { zona: regla.zona });
+  oficinas.bitacora(office, i18n.t('server.log.routineDone', { routine: i18n.t(`ed.routine.${tipo}`), result: informe.ok ? 'ok' : informe.motivo }));
+  broadcast({ type: 'editorial-updated', oficina: office });
+  return informe;
+}
+
+const rutinaAbierta = (office, tipo) => {
+  if (tipo === 'redaccion') return tandaAbierta(office);
+  if (RUTINAS_SERVIDOR[tipo]) return ejecutandoServidor.has(`${office}/${tipo}`);
+  const ch = editorial.rutinas.de(office, tipo).ultima?.chatId;
+  return !!(ch && running.has(ch));
+};
+
+function ejecutarRutina(office, tipo, opts = {}) {
+  if (tipo === 'redaccion') return lanzarTanda(office, opts);
+  if (tipo === 'radar') return lanzarRadar(office, opts);
+  if (RUTINAS_SERVIDOR[tipo]) return ejecutarRutinaServidor(office, tipo, opts);
+  throw Object.assign(new Error(i18n.t('server.error.notFound')), { status: 404 });
+}
+
+// El reloj: cada minuto mira qué rutina toca en cada oficina. Tras dormir, cada una lanza su última franja una vez.
+// La «redaccion» lleva su franja en estado.json (compatible con la v1); las demás, en rutinas.json.
 function relojEditorial(ahora = Date.now()) {
   const lanzadas = [];
   for (const o of oficinas.list()) {
     if (o.id === EDIFICIO) continue;
     const regla = editorial.regla(o.id);
     if (!regla?.activa) continue;
-    const d = editorialLib.tandaDebida({ regla, estado: editorial.estado(o.id), ahora, abierta: tandaAbierta(o.id) });
-    if (d.lanzar) {
-      lanzadas.push(lanzarTanda(o.id, { franja: d.franja }).catch(err => { oficinas.bitacora(o.id, `Editorial: la tanda ${d.franja.clave} no se lanzó: ${err.message}`); return null; }));
-    } else if (d.motivo === 'anterior-abierta') {
-      editorial.saltarFranja(o.id, d.franja);
-      oficinas.bitacora(o.id, i18n.t('server.log.slotSkipped', { slot: d.franja.clave }));
+    for (const rut of regla.rutinas || []) {
+      const rst = editorial.rutinas.de(o.id, rut.tipo);
+      const v1 = rut.tipo === 'redaccion' ? editorial.estado(o.id) : null;
+      const st = v1 ? { ...rst, ultimaClave: v1.ultimaFranja, activadaEn: v1.activadaEn } : rst;
+      const coste = rutinasLib.costeEstimado({ ...rut, equipo: equipoRutina(regla, rut).map(e => e.id) });
+      const d = rutinasLib.rutinaDebida({ maestra: true, rut, st, zona: regla.zona, ahora, abierta: rutinaAbierta(o.id, rut.tipo), predecesor: rut.tras ? editorial.rutinas.de(o.id, rut.tras) : null, coste });
+      if (d.lanzar) {
+        lanzadas.push(Promise.resolve().then(() => ejecutarRutina(o.id, rut.tipo, { franja: d.franja })).catch(err => {
+          oficinas.bitacora(o.id, i18n.t('server.log.routineFailed', { routine: i18n.t(`ed.routine.${rut.tipo}`), slot: d.franja.clave, msg: err.message }));
+          return null;
+        }));
+      } else if (d.motivo === 'anterior-abierta' || d.motivo === 'tope') {
+        if (v1) editorial.saltarFranja(o.id, d.franja); else editorial.rutinas.tomar(o.id, rut.tipo, d.franja.clave);
+        oficinas.bitacora(o.id, d.motivo === 'tope'
+          ? i18n.t('server.log.routineCap', { routine: i18n.t(`ed.routine.${rut.tipo}`), slot: d.franja.clave, used: d.usados, cap: rut.topeDiario })
+          : i18n.t('server.log.slotSkipped', { slot: d.franja.clave }));
+      }
     }
   }
   return Promise.all(lanzadas);
+}
+
+// Pausar / reanudar una rutina: cambia su `activa` en la regla (al reanudar no se lanza la franja ya pasada).
+function pausarRutina(office, tipo, activa) {
+  const regla = editorial.regla(office);
+  if (!regla) throw Object.assign(new Error(i18n.t('server.error.editorialNoRuleYet')), { status: 409 });
+  if (!rutinaDe(regla, tipo)) throw Object.assign(new Error(i18n.t('server.error.notFound')), { status: 404 });
+  editorial.guardarRegla(office, { rutinas: regla.rutinas.map(r => (r.tipo === tipo ? { ...r, activa } : r)) });
+  broadcast({ type: 'editorial-updated', oficina: office });
 }
 
 // ---------- Informe de cierre (lib/cierre.js, RF1–RF8) ----------
@@ -1712,6 +1884,19 @@ function editorialAlCerrar(chatId) {
         };
       });
       oficinas.bitacora(office, `Editorial: ${r.creadas.length} propuesta(s) en la bandeja${r.descartadas.length ? `, ${r.descartadas.length} descartada(s) (${r.descartadas.map(d => d.motivo).join('; ')})` : ''}`);
+      editorial.semillas.liberar(office, chatId); // las semillas que no salieron vuelven a la cola
+      terminarRutinaAgentes(office, 'redaccion', chatId, { propuestas: r.creadas.length, descartadas: r.descartadas.length });
+    } else if (meta.tipo === 'radar') {
+      const regla = editorial.regla(office) || editorialLib.DEFAULT;
+      let raw = null;
+      try { raw = JSON.parse(fs.readFileSync(path.join(dir, 'radar.json'), 'utf8')); } catch { /* sin radar.json: el informe lo dice */ }
+      const nuevas = cadenaLib.semillasRadar(raw, rutinaDe(regla, 'radar')?.cantidad || 3);
+      const dia = editorialLib.diaLocal(regla.zona, Date.now());
+      const previo = editorial.leerDia(office, 'radar', dia) || { fecha: dia, pasadas: [] };
+      previo.pasadas = [...(previo.pasadas || []), { ts: new Date().toISOString(), chatId, temas: nuevas }].slice(-48);
+      editorial.guardarDia(office, 'radar', dia, previo);
+      const creadas = editorial.semillas.anadir(office, nuevas);
+      terminarRutinaAgentes(office, 'radar', chatId, { temas: nuevas.length, semillas: creadas.length, ...(raw ? {} : { motivo: i18n.t('server.routine.noRadarFile') }) });
     } else if (meta.tipo === 'cambios') {
       const r = fs.existsSync(path.join(dir, 'propuestas', '1', 'propuesta.json'))
         ? editorial.cosechar(office, dir, { chatId, reemplaza: meta.propuesta }) : { creadas: [], descartadas: [] };
@@ -1723,6 +1908,23 @@ function editorialAlCerrar(chatId) {
     try { oficinas.bitacora(office, i18n.t('server.log.collectFailed', { id: chatId, msg: err.message })); } catch { /* sin bitácora */ }
   }
   broadcast({ type: 'editorial-updated', oficina: office });
+}
+
+// El informe de una ejecución con agentes: qué salió, qué CLI cayó (la tanda siguió con las demás) y los turnos reales,
+// que corrigen el estimado del tope diario. Si cayeron todas, la rutina sigue viva: la siguiente franja lo reintenta.
+function terminarRutinaAgentes(office, tipo, chatId, datos) {
+  try {
+    const regla = editorial.regla(office) || editorialLib.DEFAULT;
+    const st = editorial.rutinas.de(office, tipo);
+    if (st.ultima?.chatId !== chatId) return;
+    const turnos = readChat(chatId).messages.filter(m => m.kind === 'agent');
+    const cayeron = [...new Set(turnos.filter(m => m.verdict === 'ERROR').map(m => `${m.agentName} (${m.failure?.label?.toLowerCase() || '?'})`))];
+    const trabajaron = turnos.filter(m => m.verdict !== 'ERROR').length;
+    const informe = { ok: trabajaron > 0, ...datos, turnos: turnos.length, cayeron, ...(trabajaron ? {} : { motivo: i18n.t('server.routine.allDown') }) };
+    const rut = rutinaDe(regla, tipo);
+    const estimado = rutinasLib.costeEstimado({ tipo, equipo: equipoRutina(regla, rut).map(e => e.id) });
+    editorial.rutinas.terminar(office, tipo, informe, { turnosReales: turnos.length, estimado, zona: regla.zona });
+  } catch { /* el informe nunca rompe el cierre */ }
 }
 
 // Los campos que escriben los agentes (para la copia que reciben al pedir cambios: sin estado ni historial del servidor).
@@ -1745,6 +1947,9 @@ function pedirCambios(office, pid, input) {
 
 async function aprobarPropuesta(office, pid, input) {
   const { p, nota } = editorial.decidir(office, pid, 'aprobar', input);
+  // Semáforo (§3): una roja no se aprueba nunca; una amarilla pide confirmación explícita ({ confirmarAmarillo: true }).
+  const puede = cadenaLib.puedeAprobar(p, { confirmarAmarillo: input.confirmarAmarillo === true });
+  if (!puede.ok) throw Object.assign(new Error(puede.mensaje), { status: 409, codigo: puede.codigo });
   const regla = editorial.regla(office);
   if (!regla) throw Object.assign(new Error(i18n.t('server.error.editorialNoRule')), { status: 409 });
   if (!viralhunt.hasToken(office)) throw Object.assign(new Error(i18n.t('server.error.viralhuntToken')), { status: 409, codigo: 'sin_token' });
@@ -1760,7 +1965,7 @@ async function aprobarPropuesta(office, pid, input) {
       broadcast({ type: 'editorial-updated', oficina: office });
       throw err;
     }
-    const next = editorial.marcar(office, pid, { estado: 'aprobada', viralhunt: vh, ultimoError: null, notaAprobacion: nota || null }, { evento: 'aprobada', destino: vh.donde, viralhuntId: vh.id });
+    const next = editorial.marcar(office, pid, { estado: 'aprobada', viralhunt: vh, ultimoError: null, notaAprobacion: nota || null, ...(p.verificacion?.semaforo === 'amarillo' ? { amarilloConfirmado: true } : {}) }, { evento: 'aprobada', destino: vh.donde, viralhuntId: vh.id });
     editorial.apuntarDecision(office, p, 'aprobar', { nota });
     oficinas.bitacora(office, `Editorial: propuesta ${pid} aprobada → ViralHunt #${vh.id} (${vh.donde})`);
     broadcast({ type: 'editorial-updated', oficina: office });
@@ -1776,14 +1981,58 @@ function rechazarPropuesta(office, pid, input) {
   return next;
 }
 
+// El «estado» que pide el bot de la Nave en Discord: por oficina, misiones en curso, propuestas pendientes y su bot.
+// De una oficina que no comparte con la Nave solo se dice eso.
+function resumenNave() {
+  const lineas = [i18n.t('discord.status.title')];
+  for (const o of oficinas.list()) {
+    const d = discordBots.vista(o.id);
+    if (o.id !== EDIFICIO && !d.permitirNave) { lineas.push(i18n.t('discord.status.private', { office: o.nombre })); continue; }
+    const enCurso = [...running.keys()].filter(id => { try { return oficinas.officeOf(id) === o.id; } catch { return false; } }).length;
+    let pendientes = 0;
+    try { pendientes = editorial.regla(o.id) ? editorial.propuestas(o.id).filter(p => p.estado === 'pendiente').length : 0; } catch { /* sin editorial */ }
+    const bot = !d.configurado ? '—' : d.estado === 'conectado' ? '🟢' : '🟠';
+    lineas.push(i18n.t('discord.status.line', { office: o.nombre, running: enCurso, pending: pendientes, bot }));
+  }
+  return lineas.join('\n');
+}
+
 function editorialResumen(office) {
   const regla = editorial.regla(office);
   const estado = editorial.estado(office);
   return {
     configurada: !!regla, regla: regla || { ...editorialLib.DEFAULT }, estado, abierta: tandaAbierta(office),
     proxima: regla ? editorialLib.proximaFranja(regla, Date.now()) : null, viralhunt: viralhunt.estado(office),
-    opciones: { redes: editorialLib.REDES, fuentes: editorialLib.FUENTES, casillas: editorialLib.CASILLAS },
+    rutinas: (regla?.rutinas || editorialLib.normalizarRegla({}).rutinas).map(r => rutinasLib.vistaRutina(r, editorial.rutinas.de(office, r.tipo), {
+      zona: (regla || editorialLib.DEFAULT).zona, ahora: Date.now(), ejecutando: rutinaAbierta(office, r.tipo),
+    })),
+    semillasPendientes: editorial.semillas.leer(office).filter(s => s.estado === 'pendiente').length,
+    opciones: { redes: editorialLib.REDES, fuentes: editorialLib.FUENTES, casillas: editorialLib.CASILLAS, proporciones: editorialLib.PROPORCIONES, rutinas: Object.keys(rutinasLib.TIPOS), minCada: rutinasLib.MIN_CADA },
   };
+}
+
+const IMG_NOMBRE = /^[\w.-]{1,80}\.(png|jpe?g|webp)$/i;
+// Referencias visuales de la marca (§4): las sube el dueño; viven en editorial/marca/ y se listan en regla.marca.referencias.
+async function subirReferencia(office, nombre, req) {
+  if (!IMG_NOMBRE.test(nombre || '')) throw Object.assign(new Error(i18n.t('server.error.refName')), { status: 400 });
+  const regla = editorial.regla(office);
+  if (!regla) throw Object.assign(new Error(i18n.t('server.error.editorialNoRuleYet')), { status: 409 });
+  const refs = regla.marca.referencias.filter(f => f !== nombre);
+  if (refs.length >= 8) throw Object.assign(new Error(i18n.t('server.error.refMax', { n: 8 })), { status: 409 });
+  const buf = await readRaw(req, 8 * 1048576);
+  if (!buf.length) throw Object.assign(new Error(i18n.t('server.error.refName')), { status: 400 });
+  const dir = path.join(editorial.dir(office), 'marca');
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, nombre), buf);
+  editorial.guardarRegla(office, { marca: { ...regla.marca, referencias: [...refs, nombre] } });
+  return editorial.regla(office).marca;
+}
+function quitarReferencia(office, nombre) {
+  const regla = editorial.regla(office);
+  if (!regla || !IMG_NOMBRE.test(nombre || '')) throw Object.assign(new Error(i18n.t('server.error.fileMissing')), { status: 404 });
+  fs.rmSync(path.join(editorial.dir(office), 'marca', nombre), { force: true });
+  editorial.guardarRegla(office, { marca: { ...regla.marca, referencias: regla.marca.referencias.filter(f => f !== nombre) } });
+  return editorial.regla(office).marca;
 }
 
 function chatDetail(id) {
@@ -2144,7 +2393,74 @@ async function handle(req, res) {
         const chat = await lanzarTanda(o.id, { manual: true });
         return sendJson(res, 201, { id: chat.id, titulo: chat.title });
       }
-      if (parts[4] === 'gusto' && parts.length === 5 && req.method === 'GET') return sendJson(res, 200, { contenido: editorial.gusto(o.id) });
+      if (parts[4] === 'gusto' && parts.length === 5 && req.method === 'GET') return sendJson(res, 200, { contenido: editorial.gusto(o.id), notas: editorial.notasGusto(o.id) });
+      // Editar el gusto a mano: lo escrito son las notas del dueño, que encabezan el resumen y nunca se pisan.
+      if (parts[4] === 'gusto' && parts.length === 5 && req.method === 'PUT') {
+        const contenido = editorial.guardarNotasGusto(o.id, (await readBody(req)).notas);
+        broadcast({ type: 'editorial-updated', oficina: o.id });
+        return sendJson(res, 200, { contenido, notas: editorial.notasGusto(o.id) });
+      }
+      // ---------- v2: rutinas, semillas, encargos, escritores, galería, desempeño y marca ----------
+      if (parts[4] === 'rutinas') {
+        const tipo = parts[5];
+        if (parts.length === 5 && req.method === 'GET') return sendJson(res, 200, editorialResumen(o.id).rutinas);
+        if (parts.length === 7 && req.method === 'POST' && rutinasLib.TIPOS[tipo]) {
+          if (parts[6] === 'pausar' || parts[6] === 'reanudar') {
+            pausarRutina(o.id, tipo, parts[6] === 'reanudar');
+            return sendJson(res, 200, editorialResumen(o.id).rutinas.find(r => r.tipo === tipo));
+          }
+          if (parts[6] === 'ejecutar') {
+            if (rutinaAbierta(o.id, tipo)) throw Object.assign(new Error(i18n.t('server.error.routineOpen')), { status: 409, codigo: 'rutina_abierta' });
+            const r = ejecutarRutina(o.id, tipo, { manual: true });
+            // Las del servidor responden al terminar; las de agentes, al lanzar la misión.
+            const out = await r;
+            return sendJson(res, 202, out?.id ? { mision: out.id } : { informe: out });
+          }
+        }
+      }
+      if (parts[4] === 'semillas') {
+        if (parts.length === 5 && req.method === 'GET') return sendJson(res, 200, editorial.semillas.leer(o.id).slice().reverse());
+        if (parts.length === 6 && req.method === 'DELETE') {
+          const s = editorial.semillas.quitar(o.id, decodeURIComponent(parts[5]));
+          if (!s) return sendJson(res, 404, { error: i18n.t('server.error.notFound') });
+          broadcast({ type: 'editorial-updated', oficina: o.id });
+          return sendJson(res, 200, s);
+        }
+      }
+      if (parts[4] === 'encargos' && parts.length === 5 && req.method === 'POST') {
+        const s = editorial.encargar(o.id, await readBody(req));
+        broadcast({ type: 'editorial-updated', oficina: o.id });
+        return sendJson(res, 201, s);
+      }
+      if (parts[4] === 'escritores' && parts.length === 5 && req.method === 'GET') return sendJson(res, 200, editorial.escritores(o.id));
+      if (parts[4] === 'galeria' && parts[5] === 'exportar' && parts.length === 6 && req.method === 'GET') {
+        const ids = (url.searchParams.get('ids') || '').split(',').map(s => s.trim()).filter(Boolean);
+        const buf = editorial.exportarGaleriaZip(o.id, ids);
+        res.writeHead(200, {
+          'Content-Type': 'application/zip',
+          'Content-Disposition': `attachment; filename="editorial-${o.id}-${Date.now()}.zip"`,
+          'Content-Length': buf.length,
+          'Cache-Control': 'no-cache',
+        });
+        return res.end(buf);
+      }
+      if (parts[4] === 'galeria' && parts.length === 5 && req.method === 'GET') {
+        const q = Object.fromEntries(['estado', 'red', 'tema', 'escritor', 'rutina'].map(k => [k, url.searchParams.get(k) || '']));
+        return sendJson(res, 200, editorial.galeria(o.id, q));
+      }
+      if (parts[4] === 'desempeno' && parts.length === 5 && req.method === 'GET') return sendJson(res, 200, editorial.ultimoDia(o.id, 'desempeno') || { ready: null });
+      if (parts[4] === 'radar' && parts.length === 5 && req.method === 'GET') return sendJson(res, 200, editorial.ultimoDia(o.id, 'radar') || { pasadas: [] });
+      if (parts[4] === 'marca' && parts[5] === 'referencias' && parts.length === 7) {
+        const nombre = decodeURIComponent(parts[6]);
+        if (req.method === 'PUT' || req.method === 'POST') { const m = await subirReferencia(o.id, nombre, req); broadcast({ type: 'editorial-updated', oficina: o.id }); return sendJson(res, 200, m); }
+        if (req.method === 'DELETE') { const m = quitarReferencia(o.id, nombre); broadcast({ type: 'editorial-updated', oficina: o.id }); return sendJson(res, 200, m); }
+        if (req.method === 'GET') {
+          const file = IMG_NOMBRE.test(nombre) ? path.join(editorial.dir(o.id), 'marca', nombre) : null;
+          if (!file || !fs.existsSync(file)) return sendJson(res, 404, { error: i18n.t('server.error.fileMissing') });
+          res.writeHead(200, { 'Content-Type': MIME[path.extname(file).toLowerCase()] || 'application/octet-stream', 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff' });
+          return fs.createReadStream(file).pipe(res);
+        }
+      }
       if (parts[4] === 'propuestas') {
         if (parts.length === 5 && req.method === 'GET') return sendJson(res, 200, editorial.propuestas(o.id));
         const pid = decodeURIComponent(parts[5] || '');
@@ -2164,9 +2480,32 @@ async function handle(req, res) {
           if (parts[6] === 'aprobar') return sendJson(res, 200, await aprobarPropuesta(o.id, pid, body));
           if (parts[6] === 'cambios') return sendJson(res, 202, pedirCambios(o.id, pid, body));
           if (parts[6] === 'rechazar') return sendJson(res, 200, rechazarPropuesta(o.id, pid, body));
+          if (parts[6] === 'reusar') { const s = editorial.reusar(o.id, pid); broadcast({ type: 'editorial-updated', oficina: o.id }); return sendJson(res, 201, s); }
+        }
+        // Calendario: mover la hora de una pendiente antes de enviarla.
+        if (parts.length === 7 && parts[6] === 'hora' && (req.method === 'PATCH' || req.method === 'PUT')) {
+          const p = editorial.cambiarHora(o.id, pid, (await readBody(req)).hora);
+          broadcast({ type: 'editorial-updated', oficina: o.id });
+          return sendJson(res, 200, p);
         }
       }
     }
+    return sendJson(res, 404, { error: i18n.t('server.error.notFound') });
+  }
+  // Discord de una oficina, o de la Nave con /api/oficinas/edificio/discord. Solo desde el panel (una llave de agente no
+  // llega aquí: agentDenied). El token se guarda en discord.secreto.json y nunca se devuelve.
+  if (parts[0] === 'api' && parts[1] === 'oficinas' && parts[3] === 'discord') {
+    const o = oficinas.read(parts[2]);
+    if (!o) return sendJson(res, 404, { error: i18n.t('server.error.officeMissing') });
+    if (parts.length === 4 && req.method === 'GET') return sendJson(res, 200, discordBots.vista(o.id));
+    if (parts.length === 4 && (req.method === 'PUT' || req.method === 'POST')) {
+      try { return sendJson(res, 200, discordBots.guardar(o.id, await readBody(req))); } catch (err) {
+        if (err.codigo === 'token_invalido') throw Object.assign(new Error(i18n.t('discord.err.token')), { status: 400, codigo: err.codigo });
+        throw err;
+      }
+    }
+    if (parts.length === 4 && req.method === 'DELETE') return sendJson(res, 200, discordBots.borrar(o.id));
+    if (parts.length === 5 && parts[4] === 'probar' && req.method === 'POST') return sendJson(res, 200, await discordBots.probar(o.id));
     return sendJson(res, 404, { error: i18n.t('server.error.notFound') });
   }
   // Bots de una oficina: listar, añadir, quitar y probar (ping de ida y vuelta). Nunca se devuelven URL ni llave.
@@ -2215,7 +2554,7 @@ async function handle(req, res) {
       }
       const reply = await Promise.race([turn.wait, new Promise(r => setTimeout(() => r(null), waitMs))]);
       if (!reply) turn.cancel();
-      const texto = reply ? redact(String(reply.texto || '').trim(), bots.secretValues(o.id)) : null;
+      const texto = reply ? redact(String(reply.texto || '').trim(), secretsOf(o.id)) : null;
       return sendJson(res, 200, { enviado: true, status: sent.status || null, error: null, texto, pong: (texto || '').toLowerCase() === 'pong', ms: Date.now() - t0 });
     }
   }
@@ -2223,7 +2562,7 @@ async function handle(req, res) {
   if (parts[0] === 'api' && parts[1] === 'oficinas' && parts[3] === 'chat') {
     const o = oficinas.read(parts[2]);
     if (!o || o.id === EDIFICIO) return sendJson(res, 404, { error: i18n.t('chat.err.building') });
-    const secrets = bots.secretValues(o.id);
+    const secrets = secretsOf(o.id);
     if (parts.length === 4 && req.method === 'GET') {
       return sendJson(res, 200, { mensajes: officeChat.list(o.id, secrets), anfitrion: officeChat.readSettings(o.id).anfitrion, miembros: chatMembers(o.id) });
     }
@@ -2428,11 +2767,12 @@ async function handle(req, res) {
   }
 
   // Archivos estáticos
-  const file = path.join(PUBLIC_DIR, url.pathname === '/' ? 'index.html' : path.normalize(decodeURIComponent(url.pathname)));
+  const isEd = url.pathname === '/editorial' || url.pathname === '/editorial/';
+  const file = path.join(PUBLIC_DIR, url.pathname === '/' ? 'index.html' : isEd ? 'editorial.html' : path.normalize(decodeURIComponent(url.pathname)));
   if (file.startsWith(PUBLIC_DIR + path.sep) && fs.existsSync(file) && fs.statSync(file).isFile()) {
     const type = MIME[path.extname(file).toLowerCase()] || 'text/plain';
     const headers = { 'Content-Type': type.startsWith('image/') && !type.includes('svg') ? type : `${type}; charset=utf-8`, 'Cache-Control': 'no-cache' };
-    if (panel && (url.pathname === '/' || url.pathname === '/index.html')) headers['Set-Cookie'] = acceso.cabecera(panel);
+    if (panel && (url.pathname === '/' || url.pathname === '/index.html' || isEd || url.pathname === '/editorial.html')) headers['Set-Cookie'] = acceso.cabecera(panel);
     res.writeHead(200, headers);
     return fs.createReadStream(file).pipe(res);
   }
@@ -2458,7 +2798,8 @@ if (require.main === module) {
       console.log(`  ${a.installed ? '✅' : '❌'} ${a.name.padEnd(8)} ${a.enabled ? '' : '(desactivado)'} streaming: ${a.stream}`);
     }
     console.log('');
+    discordBots.arrancarTodas();
   });
 }
 
-module.exports = { server, runCycle, stopCycle, running, relatores, readChat, PROJECTS_DIR, MEMORY_DIR, syncMemoryIn, syncMemoryOut, relojEditorial, lanzarTanda };
+module.exports = { server, discordBots, runCycle, stopCycle, running, relatores, readChat, PROJECTS_DIR, MEMORY_DIR, syncMemoryIn, syncMemoryOut, relojEditorial, lanzarTanda };

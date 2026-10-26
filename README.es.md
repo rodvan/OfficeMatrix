@@ -219,6 +219,8 @@ No todo tiene que ser una misión. Cada oficina tiene una pestaña **Chat** junt
 
 Para conectar un bot, abre el ⚙ de la oficina y sigue la lista en vivo. El paso a paso, incluido el túnel de Cloudflare (el servicio es solo `http://localhost:4323`), está en [docs/es/GROK-BOTS.md](docs/es/GROK-BOTS.md). Guía en inglés: [docs/GROK-BOTS.md](docs/GROK-BOTS.md).
 
+**💬 Discord.** Dale a cada oficina su propio bot de Discord: habla con las IAs de esa oficina desde el celular (`@bot @grok …`), recibe avisos de misiones y aprueba propuestas editoriales con un botón. El bot de la Nave muestra el estado de todas y le pregunta a la oficina que nombres. Sin túnel. Guía: [docs/es/DISCORD.md](docs/es/DISCORD.md).
+
 ---
 
 ## 🌐 Aplicación Hermana: Conexión con ViralHunt
@@ -236,7 +238,7 @@ powershell -File tests/helpers/editorial-images.ps1   # Windows: tres imágenes 
 node tests/helpers/editorial-demo.js                  # abre en el puerto 4400, datos en .demo-editorial/
 ```
 
-Diseño y API: [`docs/es/EDITORIAL.md`](docs/es/EDITORIAL.md).
+Diseño y API: [`docs/es/EDITORIAL.md`](docs/es/EDITORIAL.md) · Rutinas continuas y dashboard v2: [`docs/es/EDITORIAL-V2.md`](docs/es/EDITORIAL-V2.md).
 
 ---
 

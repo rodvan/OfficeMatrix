@@ -11,7 +11,9 @@ Welcome! Pick the guide you need. Every guide has a Spanish version right next t
 | 🤖 | [Connect your own agent](AGENTS.md) | `agents.json`, stream parsers, the turn protocol, Kimi | [AGENTES.md](AGENTES.md) |
 | 🏛️ | [Work modes](MODES.md) | Relay, Delphi and Council, and how they work inside | [MODOS-DE-TRABAJO.md](MODOS-DE-TRABAJO.md) |
 | 📰 | [Editorial desk](EDITORIAL.md) | The inbox, the ViralHunt connector and its API | [es/EDITORIAL.md](es/EDITORIAL.md) |
+| ⏱ | [Editorial v2: routines](EDITORIAL-V2.md) | Permanent routines, the «what worked → more like that» chain, traffic light, gallery API | [es/EDITORIAL-V2.md](es/EDITORIAL-V2.md) |
 | 🛰️ | [Grok Bots](GROK-BOTS.md) | Your Grok bots as office employees, via webhook | [es/GROK-BOTS.md](es/GROK-BOTS.md) |
+| 💬 | [Discord](DISCORD.md) | One Discord bot per office, a Ship bot that coordinates, alerts and approve buttons | [es/DISCORD.md](es/DISCORD.md) |
 | 🧭 | [For external agents](FOR-AGENTS.md) | Using an office key and `om.js` from another assistant | [PARA-AGENTES.md](PARA-AGENTES.md) |
 | 🌍 | [Translating OfficeMatrix](I18N.md) | The EN / ES dictionaries and how to add a language | — |
 | 📦 | [Publishing a release](PUBLISH.md) | For maintainers: the single-commit public branch | [PUBLICAR.md](PUBLICAR.md) |

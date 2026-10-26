@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n="ed.pageTitle">OfficeMatrix · Editorial Desk</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%2307090d'/%3E%3Cpath d='M3 3h4v4H3zM9 3h4v4H9zM3 9h4v4H3z' fill='%233fd0ff'/%3E%3Cpath d='M9 9h4v4H9z' fill='%23ffb547'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/style.css">
+  <script>try { const t = localStorage.getItem('om-tema'); document.documentElement.dataset.tema = t || (matchMedia('(prefers-color-scheme: light)').matches ? 'claro' : 'oscuro'); } catch { document.documentElement.dataset.tema = 'oscuro'; }</script>
+</head>
+<body class="ed-body">
+  <header class="topbar ed-topbar">
+    <div class="brand"><span class="logo"></span><span class="brand-name" translate="no">OFFICEMATRIX</span><small data-i18n="ui.editorialDashboard">Editorial Desk</small></div>
+    <div class="ed-office-pick">
+      <select id="edOfficeSel" class="field small" aria-label="Office" data-i18n-aria-label="ui.office"></select>
+    </div>
+    <nav class="ed-nav" id="edNav" role="tablist">
+      <button type="button" class="ed-nav-btn on" data-ed-tab="inbox" data-i18n="ed.nav.inbox">INBOX</button>
+      <button type="button" class="ed-nav-btn" data-ed-tab="calendar" data-i18n="ed.nav.calendar">CALENDAR</button>
+      <button type="button" class="ed-nav-btn" data-ed-tab="topics" data-i18n="ed.nav.topics">TOPICS &amp; WRITERS</button>
+      <button type="button" class="ed-nav-btn" data-ed-tab="routines" data-i18n="ed.nav.routines">ROUTINES</button>
+      <button type="button" class="ed-nav-btn" data-ed-tab="taste" data-i18n="ed.nav.taste">LEARNED TASTE</button>
+      <button type="button" class="ed-nav-btn" data-ed-tab="gallery" data-i18n="ed.nav.gallery">GALLERY</button>
+      <button type="button" class="ed-nav-btn" data-ed-tab="brand" data-i18n="ed.nav.brand">BRAND KIT</button>
+      <button type="button" class="ed-nav-btn" data-ed-tab="settings" data-i18n="ed.nav.settings">VIRALHUNT</button>
+    </nav>
+    <div class="top-right">
+      <a href="/" class="notify-btn" id="backToOps" style="text-decoration:none"><span translate="no">🛸</span> <span class="lbl" data-i18n="ed.nav.backOps">COMMAND CENTER</span></a>
+      <span class="seg lang-seg" id="langSeg" role="group" aria-label="Language" data-i18n-aria-label="lang.label" data-i18n-hover="lang.hover"><button type="button" data-lang="en" class="on" aria-pressed="true" translate="no">EN</button><button type="button" data-lang="es" aria-pressed="false" translate="no">ES</button></span>
+      <button type="button" class="notify-btn" id="themeBtn" aria-label="Switch light or dark theme" data-i18n-aria-label="ui.themeAria">☀</button>
+      <span class="link-state" id="linkState" data-hover="txt:Live connection to the server." data-i18n-hover="ui.linkHover" data-i18n="ui.link.on">● LINK</span>
+      <span class="clock" id="clock">--:--:--</span>
+    </div>
+  </header>
+
+  <main class="ed-dashboard" id="edDashboard">
+    <!-- 1. BANDEJA -->
+    <section class="ed-section" id="edSection-inbox">
+      <div class="ed-filter-bar">
+        <input type="search" id="edInboxSearch" class="field small" placeholder="Filter proposals…" data-i18n-placeholder="ed.filter.searchPh">
+        <select id="edFilterTopic" class="field small" aria-label="Topic" data-i18n-aria-label="ed.filter.topic"></select>
+        <select id="edFilterNetwork" class="field small" aria-label="Network" data-i18n-aria-label="ed.filter.network"></select>
+        <select id="edFilterWriter" class="field small" aria-label="Writer" data-i18n-aria-label="ed.filter.writer"></select>
+        <select id="edFilterStatus" class="field small" aria-label="Status" data-i18n-aria-label="ed.filter.status">
+          <option value="" data-i18n="ed.filter.allStatuses">All statuses</option>
+          <option value="pendiente" data-i18n="ed.state.pendiente">Pending</option>
+          <option value="en-cambios" data-i18n="ed.state.en-cambios">In changes</option>
+          <option value="aprobada" data-i18n="ed.state.aprobada">Approved</option>
+          <option value="rechazada" data-i18n="ed.state.rechazada">Rejected</option>
+        </select>
+        <div class="ed-filter-actions">
+          <button type="button" class="btn small primary" id="edNewBatchBtn" data-i18n="ed.btnNewBatch">+ New batch</button>
+          <button type="button" class="btn small ghost" id="edConfigBtn" data-i18n="ed.btnConfig">⚙ Configure</button>
+        </div>
+      </div>
+      <div id="edInboxNotice" class="ed-notice-area"></div>
+      <div id="edInboxGrid" class="ed-grid"></div>
+    </section>
+
+    <!-- 2. CALENDARIO -->
+    <section class="ed-section" id="edSection-calendar" hidden>
+      <header class="ed-section-head">
+        <div>
+          <h2 data-i18n="ed.cal.title">Editorial Schedule</h2>
+          <p class="muted" data-i18n="ed.cal.hint">Drag or click to move scheduled time before sending. Only pending proposals can be rescheduled.</p>
+        </div>
+        <div id="edCalTokenBadge" class="ed-token-badge"></div>
+      </header>
+      <div id="edCalendarTimeline" class="ed-cal-timeline"></div>
+    </section>
+
+    <!-- 3. TEMAS Y ESCRITORES -->
+    <section class="ed-section" id="edSection-topics" hidden>
+      <header class="ed-section-head">
+        <div>
+          <h2 data-i18n="ed.topics.title">Content Pillars &amp; Topics</h2>
+        </div>
+        <div class="ed-actions">
+          <button type="button" class="btn small ghost" id="edAddTopicBtn" data-i18n="ed.topics.newBtn">+ New Topic</button>
+          <button type="button" class="btn small primary" id="edAssignTopicBtn" data-i18n="ed.topics.assignBtn">+ Assign Topic to Writer</button>
+        </div>
+      </header>
+      <div class="ed-topics-layout">
+        <div class="ed-pillars-col">
+          <div id="edPillarsList" class="ed-pillars-list"></div>
+        </div>
+        <div class="ed-writers-col">
+          <h3 data-i18n="ed.writers.scoreboardTitle">Writers' Scoreboard</h3>
+          <div id="edWritersGrid" class="ed-writers-grid"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. RUTINAS -->
+    <section class="ed-section" id="edSection-routines" hidden>
+      <header class="ed-section-head">
+        <div>
+          <h2 data-i18n="ed.routines.title">Permanent Routines</h2>
+          <p class="muted" data-i18n="ed.routines.desc">Permanent jobs run continuously on schedule without stopping or hitting global caps.</p>
+        </div>
+      </header>
+      <div id="edRoutinesGrid" class="ed-routines-grid"></div>
+    </section>
+
+    <!-- 5. GUSTO APRENDIDO -->
+    <section class="ed-section" id="edSection-taste" hidden>
+      <header class="ed-section-head">
+        <div>
+          <h2 data-i18n="ed.taste.title">Editorial Taste &amp; Learning</h2>
+        </div>
+      </header>
+      <div class="ed-taste-container">
+        <form id="edTasteForm" class="tpl-form ed-taste-box">
+          <h3 data-i18n="ed.taste.ownerNotesTitle">Owner Taste Notes (handwritten)</h3>
+          <p class="muted" data-i18n="ed.taste.notesHint">These notes head the taste brief and are never overwritten by automated runs.</p>
+          <textarea id="edTasteNotes" class="field" rows="4" placeholder="Enter taste notes (e.g. tone, forbidden words, formats)…"></textarea>
+          <div class="ed-actions">
+            <button type="submit" class="btn small primary" id="edSaveTasteBtn" data-i18n="ed.taste.btnSaveNotes">Save Owner Notes</button>
+            <span id="edTasteStatus" class="muted" role="status"></span>
+          </div>
+        </form>
+        <div class="ed-taste-learned">
+          <h3 data-i18n="ed.taste.learnedTitle">Learned from Decisions &amp; ViralHunt</h3>
+          <div id="edTasteContent" class="ed-taste-markdown"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. GALERÍA -->
+    <section class="ed-section" id="edSection-gallery" hidden>
+      <header class="ed-section-head">
+        <div>
+          <h2 data-i18n="ed.gallery.title">Content Gallery</h2>
+        </div>
+        <div class="ed-actions">
+          <button type="button" class="btn small ghost" id="edGallerySelectAll" data-i18n="ed.gallery.btnSelectAll">Select all</button>
+          <button type="button" class="btn small ghost" id="edGalleryDeselectAll" data-i18n="ed.gallery.btnDeselectAll">Clear selection</button>
+          <button type="button" class="btn small primary" id="edGalleryExportBtn" data-i18n="ed.gallery.btnExport">Export Selected (.ZIP)</button>
+        </div>
+      </header>
+      <div class="ed-filter-bar ed-gallery-filter">
+        <select id="edGalFilterStatus" class="field small" aria-label="Status" data-i18n-aria-label="ed.filter.status">
+          <option value="" data-i18n="ed.filter.allStatuses">All statuses</option>
+          <option value="aprobada" data-i18n="ed.state.aprobada">Approved</option>
+          <option value="publicada" data-i18n="ed.gallery.publishedBadge">Published</option>
+          <option value="cambios" data-i18n="ed.state.en-cambios">In changes</option>
+          <option value="rechazada" data-i18n="ed.state.rechazada">Rejected</option>
+        </select>
+        <select id="edGalFilterNetwork" class="field small" aria-label="Network" data-i18n-aria-label="ed.filter.network"></select>
+        <select id="edGalFilterTopic" class="field small" aria-label="Topic" data-i18n-aria-label="ed.filter.topic"></select>
+        <select id="edGalFilterWriter" class="field small" aria-label="Writer" data-i18n-aria-label="ed.filter.writer"></select>
+        <select id="edGalFilterRoutine" class="field small" aria-label="Routine" data-i18n-aria-label="ed.filter.routine">
+          <option value="" data-i18n="ed.filter.allRoutines">All routines</option>
+          <option value="encargo">encargo</option>
+          <option value="ganador">ganador</option>
+          <option value="radar">radar</option>
+          <option value="reuso">reuso</option>
+        </select>
+      </div>
+      <div id="edGalleryGrid" class="ed-grid"></div>
+    </section>
+
+    <!-- 7. MARCA -->
+    <section class="ed-section" id="edSection-brand" hidden>
+      <header class="ed-section-head">
+        <div>
+          <h2 data-i18n="ed.brand.title">Brand Identity Kit</h2>
+        </div>
+      </header>
+      <div class="ed-brand-grid">
+        <div class="ed-brand-card">
+          <div id="edBrandDetails"></div>
+        </div>
+        <div class="ed-brand-card">
+          <h3 data-i18n="ed.brand.referencesTitle">Visual References</h3>
+          <div id="edBrandRefsGrid" class="ed-refs-grid"></div>
+          <div class="ed-actions" style="margin-top:12px">
+            <label class="btn small ghost" style="cursor:pointer">
+              <span data-i18n="ed.brand.uploadRef">+ Upload Reference Image</span>
+              <input type="file" id="edRefFileInput" accept="image/png,image/jpeg,image/webp" style="display:none">
+            </label>
+            <span id="edRefUploadStatus" class="muted"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8. VIRALHUNT -->
+    <section class="ed-section" id="edSection-settings" hidden>
+      <header class="ed-section-head">
+        <div>
+          <h2 data-i18n="ed.vh.title">ViralHunt Connection &amp; Roles</h2>
+        </div>
+      </header>
+      <div class="ed-vh-container">
+        <div class="ed-vh-form-card">
+          <h3 data-i18n="ed.vhConnectionLegend">ViralHunt · office connection</h3>
+          <p id="edVhStateText" class="muted"></p>
+          <div class="field-row">
+            <label><span data-i18n="ed.writerTokenLabel">Writer or Publisher token</span>
+              <input type="password" id="edVhTokenInput" class="field" autocomplete="new-password" placeholder="Paste token here" data-i18n-placeholder="ed.tokenPlaceholder">
+            </label>
+          </div>
+          <div class="ed-actions" style="margin-top:12px">
+            <button type="button" class="btn small primary" id="edVhSaveBtn" data-i18n="ed.btnSaveToken">Save token</button>
+            <button type="button" class="btn small ghost" id="edVhTestBtn" data-i18n="ed.btnTestToken">Test connection</button>
+            <button type="button" class="btn small ghost" id="edVhDeleteBtn" data-i18n="ed.btnDeleteToken">Disconnect</button>
+          </div>
+          <p id="edVhResult" role="status" style="margin-top:12px"></p>
+        </div>
+        <div class="ed-vh-guide-card">
+          <h3 data-i18n="ed.vh.tokenGuideTitle">Writer Token vs Publisher Token</h3>
+          <div class="ed-token-comparison">
+            <div class="ed-token-col">
+              <h4>Writer Token</h4>
+              <p class="muted" data-i18n="ed.vh.tokenGuideWriter">Writer Token: Posts sent by OfficeMatrix are placed in ViralHunt's Review stage. A human manager or admin must review and approve them before they go live.</p>
+            </div>
+            <div class="ed-token-col">
+              <h4>Publisher Token</h4>
+              <p class="muted" data-i18n="ed.vh.tokenGuidePublisher">Publisher Token: Posts are scheduled directly in ViralHunt and will publish automatically at the scheduled time.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- DIÁLOGOS Y MODALES -->
+  <dialog id="edConfirmYellowDialog" class="viewer tpl-dialog">
+    <header><span data-i18n="ed.light.confirmTitle">Confirm Yellow Proposal</span><button class="btn ghost" data-close aria-label="Close" data-i18n-aria-label="ui.close">✕</button></header>
+    <div class="tpl-form">
+      <p id="edYellowPrompt" data-i18n="ed.light.confirmPrompt">This proposal relies only on secondary sources. Do you confirm approval?</p>
+      <div id="edYellowSourcesList" class="ed-sources-compact"></div>
+      <div class="ed-actions" style="margin-top:16px">
+        <button type="button" class="btn primary" id="edYellowConfirmBtn" data-i18n="ed.light.btnConfirmYellow">Confirm &amp; Approve</button>
+        <button type="button" class="btn ghost" id="edYellowCancelBtn" data-i18n="ui.close">Close</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="edEncargoDialog" class="viewer tpl-dialog">
+    <header><span data-i18n="ed.encargo.dialogTitle">Assign Topic to Writer</span><button class="btn ghost" data-close aria-label="Close" data-i18n-aria-label="ui.close">✕</button></header>
+    <form id="edEncargoForm" class="tpl-form">
+      <label><span data-i18n="ed.encargo.writerLabel">Writer</span> <select id="edEncargoWriter" class="field" required></select></label>
+      <label><span data-i18n="ed.encargo.topicLabel">Topic or assignment brief</span> <input id="edEncargoTopic" class="field" required placeholder="e.g. Artemis III thread" maxlength="160"></label>
+      <label><span data-i18n="ed.encargo.detailsLabel">Details (optional guidance)</span> <textarea id="edEncargoDetails" class="field" rows="2" maxlength="400"></textarea></label>
+      <label><span data-i18n="ed.encargo.paraLabel">Target date and time (optional)</span> <input type="datetime-local" id="edEncargoPara" class="field"></label>
+      <label><span data-i18n="ed.encargo.pilarLabel">Pillar (optional)</span> <select id="edEncargoPilar" class="field"></select></label>
+      <p id="edEncargoHint" class="muted" role="alert"></p>
+      <button class="btn primary" type="submit" data-i18n="ed.encargo.btnSend">Create Assignment</button>
+    </form>
+  </dialog>
+
+  <dialog id="edTopicDialog" class="viewer tpl-dialog">
+    <header><span data-i18n="ed.topics.dialogTitle">Create or Edit Topic</span><button class="btn ghost" data-close aria-label="Close" data-i18n-aria-label="ui.close">✕</button></header>
+    <form id="edTopicForm" class="tpl-form">
+      <label><span data-i18n="ed.topics.nameLabel">Topic or Pillar name</span> <input id="edTopicName" class="field" required maxlength="60" placeholder="e.g. Space, Neuroscience"></label>
+      <label><span data-i18n="ed.topics.writersLabel">Assigned writers (comma-separated IDs)</span> <input id="edTopicWriters" class="field" placeholder="grok, claude"></label>
+      <p id="edTopicHint" class="muted" role="alert"></p>
+      <button class="btn primary" type="submit" data-i18n="ed.btnConfirm">Confirm</button>
+    </form>
+  </dialog>
+
+  <dialog id="edRoutineDialog" class="viewer tpl-dialog">
+    <header><span id="edRoutineDialogTitle" data-i18n="ed.routines.title">Configure Routine</span><button class="btn ghost" data-close aria-label="Close" data-i18n-aria-label="ui.close">✕</button></header>
+    <form id="edRoutineForm" class="tpl-form">
+      <input type="hidden" id="edRoutineTipo">
+      <label><input type="checkbox" id="edRoutineActiva"> <span data-i18n="ed.routines.fieldActive">Active</span></label>
+      <label><span data-i18n="ed.routines.fieldFreqMode">Frequency schedule</span>
+        <select id="edRoutineFreqMode" class="field">
+          <option value="interval" data-i18n="ed.routines.optMinutes">Every N minutes</option>
+          <option value="hours" data-i18n="ed.routines.optHours">Fixed hours daily</option>
+          <option value="after" data-i18n="ed.routines.optAfter">After another routine</option>
+        </select>
+      </label>
+      <label id="edRoutineEveryRow"><span data-i18n="ed.routines.fieldEveryMin">Interval in minutes (min 30)</span> <input type="number" id="edRoutineCadaMin" class="field" min="30" max="1440" value="60"></label>
+      <label id="edRoutineHoursRow" hidden><span data-i18n="ed.routines.fieldFixedHours">Fixed hours (comma-separated HH:MM)</span> <input type="text" id="edRoutineHoras" class="field" placeholder="08:00, 17:00"></label>
+      <label id="edRoutineAfterRow" hidden><span data-i18n="ed.routines.optAfter">After another routine</span> <select id="edRoutineTras" class="field"></select></label>
+      <div class="ed-fields">
+        <label><span data-i18n="ed.routines.fieldWindow">Window from</span> <input type="time" id="edRoutineVentanaDesde" class="field" value="07:00"></label>
+        <label><span data-i18n="ed.routines.fieldWindow">Window to</span> <input type="time" id="edRoutineVentanaHasta" class="field" value="23:00"></label>
+      </div>
+      <label id="edRoutineTeamRow"><span data-i18n="ed.routines.fieldTeam">Team members (comma-separated IDs)</span> <input type="text" id="edRoutineEquipo" class="field" placeholder="grok, claude"></label>
+      <label><span data-i18n="ed.routines.fieldCap">Daily cap in turns (0 = unlimited)</span> <input type="number" id="edRoutineTopeDiario" class="field" min="0" max="500" value="24"></label>
+      <label id="edRoutineQtyRow"><span data-i18n="ed.routines.fieldQuantity">Quantity (ideas / proposals)</span> <input type="number" id="edRoutineCantidad" class="field" min="1" max="10" value="3"></label>
+      <p id="edRoutineHint" class="muted" role="alert"></p>
+      <button class="btn primary" type="submit" data-i18n="ed.btnConfirm">Confirm</button>
+    </form>
+  </dialog>
+
+  <dialog id="edHourDialog" class="viewer tpl-dialog">
+    <header><span data-i18n="ed.cal.changeHour">Change time</span><button class="btn ghost" data-close aria-label="Close" data-i18n-aria-label="ui.close">✕</button></header>
+    <form id="edHourForm" class="tpl-form">
+      <input type="hidden" id="edHourPid">
+      <label><span data-i18n="ed.aspect.hora">Time</span> <input type="datetime-local" id="edHourValue" class="field" required></label>
+      <p id="edHourHint" class="muted" role="alert"></p>
+      <button class="btn primary" type="submit" data-i18n="ed.btnConfirm">Confirm</button>
+    </form>
+  </dialog>
+
+  <!-- Diálogos compatibles con v1 -->
+  <dialog id="editorialDialog" class="viewer tpl-dialog"><header><span data-i18n="ed.dialogTitle">⚙ EDITORIAL</span><button class="btn ghost" data-close aria-label="Close" data-i18n-aria-label="ui.close">✕</button></header>
+    <form id="editorialForm" class="tpl-form ed-form"><p id="edConfigHint" role="status"></p><div id="edFields" class="ed-fields"></div>
+    <fieldset><legend data-i18n="ed.vhConnectionLegend">ViralHunt · office connection</legend><p id="edTokenState"></p><label><span data-i18n="ed.writerTokenLabel">Writer token</span> <input id="edToken" class="field" type="password" autocomplete="new-password" data-i18n-placeholder="ed.tokenPlaceholder" placeholder="Paste new token"></label>
+    <div class="ed-actions"><button type="button" class="btn ghost" id="edTokenSave" data-i18n="ed.btnSaveToken">Save token</button><button type="button" class="btn ghost" id="edTokenTest" data-i18n="ed.btnTestToken">Test connection</button><button type="button" class="btn ghost" id="edTokenDelete" data-i18n="ed.btnDeleteToken">Disconnect</button></div><p id="edConnection" role="status"></p></fieldset>
+    <button class="btn primary" type="submit" id="edSaveRuleBtn" data-i18n="ed.btnSaveRule">Save rule</button></form></dialog>
+
+  <dialog id="decisionDialog" class="viewer tpl-dialog"><header><span id="edDecisionTitle"></span><button class="btn ghost" data-close aria-label="Close" data-i18n-aria-label="ui.close">✕</button></header>
+    <form id="edDecisionForm" class="tpl-form"><p id="edDecisionHook"></p><p id="edDecisionExplain"></p><fieldset id="edChecks"><legend data-i18n="ed.whatToChange">What to change</legend><label><input type="checkbox" name="aspecto" value="imagen"> <span data-i18n="ed.aspect.imagen">image</span></label><label><input type="checkbox" name="aspecto" value="texto"> <span data-i18n="ed.aspect.texto">text</span></label><label><input type="checkbox" name="aspecto" value="hook"> <span data-i18n="ed.aspect.hook">hook</span></label><label><input type="checkbox" name="aspecto" value="tema"> <span data-i18n="ed.aspect.tema">topic</span></label><label><input type="checkbox" name="aspecto" value="hora"> <span data-i18n="ed.aspect.hora">time</span></label></fieldset><label><span data-i18n="ed.noteForTeam">Note for the team</span> <textarea class="field" rows="3" maxlength="600" id="edNote"></textarea></label><p id="edDecisionHint" role="alert"></p><button class="btn primary" id="edDecisionSend" data-i18n="ed.btnConfirm">Confirm</button></form></dialog>
+
+  <div id="edToast" class="ed-toast" hidden></div>
+
+  <script src="/i18n.js"></script>
+  <script src="/editorial.js"></script>
+</body>
+</html>

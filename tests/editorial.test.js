@@ -162,7 +162,7 @@ test('editorial de punta a punta: token, tanda programada, bandeja, aprobar, cam
   assert.strictEqual((await api(`/api/oficinas/${office}/editorial/tanda`, { method: 'POST', body: '{}' })).status, 409);
   const regla = await api(`/api/oficinas/${office}/editorial`, { method: 'PUT', body: JSON.stringify({
     activa: true, zona: 'UTC', horas: ['06:00', '18:00'], modo: 'relevo', propuestasPorTanda: 3, redes: ['instagram', 'x'], fuentes: ['x', 'reddit'], nichos: ['neurociencia'],
-    equipo: [{ id: 'grok', rol: 'Investigación viral e imagen' }], destino: 'borrador', viralhunt: { proyecto: 'Faro Curioso' }, marca: { nombre: 'Faro Curioso', tono: 'divulgación clara' },
+    equipo: [{ id: 'grok', rol: 'Investigación viral e imagen' }, { id: 'claude', rol: 'Verificador' }], destino: 'borrador', viralhunt: { proyecto: 'Faro Curioso' }, marca: { nombre: 'Faro Curioso', tono: 'divulgación clara' },
   }) });
   assert.strictEqual(regla.status, 200, JSON.stringify(regla.body));
   assert.strictEqual(regla.body.regla.rondas, 2);

@@ -52,6 +52,28 @@ function crearViralHuntFalso({ token, mustDraft = '', reviewStageReady = true } 
         return ok(res, { id, status: stage === 'scheduled' ? 'scheduled' : stage, stage, scheduled_at: b.scheduled_at || null, targets: [], results: {}, warnings: [],
           review_url: `https://viralhunt.io/tool/schedule/?post=${id}`, url: `/schedule/?post=${id}`, card_id: 77 });
       }
+      // v2 (§8a, §2, §5b, §8 de la skill). La prueba elige lo que devuelven con vh.cfg:
+      //   cfg.stats: objeto de stats.php (por defecto ready:false) o 'unavailable' · cfg.editLog: filas o 'unavailable' · cfg.publicados: ids publicados
+      if (ep === 'stats.php') {
+        if (cfg.stats === 'unavailable') return fail(res, 503, 'stats_unavailable', 'Not enabled');
+        return ok(res, cfg.stats || { ready: false });
+      }
+      if (ep === 'search.php') {
+        const kw = url.searchParams.get('keyword') || '';
+        return ok(res, { keyword: kw, sources: [{ platform: 'tiktok', total: 2 }], posts: [1, 2].map(i => ({
+          platform: 'tiktok', id: `t${i}`, title: `Tendencia ${i} parecida a ${kw}`, description: '', post_url: `https://example.com/tiktok/busqueda/${i}`,
+          author_handle: `@similar${i}`, engagement_score: 5000 * i, growth_24h: { delta: 300 * i }, created_at: '2026-10-25T10:00:00Z', raw: { nada: true },
+        })) });
+      }
+      if (ep === 'schedule.php' && action === 'edit_log') {
+        if (cfg.editLog === 'unavailable') return fail(res, 503, 'edit_log_unavailable', 'Not enabled');
+        return ok(res, { edits: cfg.editLog || [] });
+      }
+      if (ep === 'schedule.php' && action === 'get') {
+        const id = url.searchParams.get('id');
+        const pub = (cfg.publicados || []).map(String).includes(String(id));
+        return ok(res, { id: Number(id), status: pub ? 'published' : 'scheduled', results: pub ? { 15: { permalink: `https://x.com/faro/status/${id}` } } : {} });
+      }
       return fail(res, 404, 'not_found', `Endpoint simulado desconocido: ${ep} ${action || ''}`);
     });
   });

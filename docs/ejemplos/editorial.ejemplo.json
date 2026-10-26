@@ -1,0 +1,42 @@
+{
+  "activa": false,
+  "marca": {
+    "nombre": "Lumen Lab",
+    "tono": "clear, curious science for everyone; evidence first, no hype",
+    "paleta": ["#101828", "#F5B700", "#2E90FA", "#F9FAFB"],
+    "tipografias": ["Inter", "Space Grotesk"],
+    "handles": { "instagram": "@lumenlab", "x": "@lumenlab_x" },
+    "formato": "One bold hook on the image, a single visual idea, logo bottom right",
+    "proporcion": "4:5",
+    "referencias": []
+  },
+  "idiomas": ["en"],
+  "nichos": ["neuroscience", "space"],
+  "fuentes": ["x", "reddit", "rss"],
+  "redes": ["instagram", "x"],
+  "propuestasPorTanda": 3,
+  "zona": "Europe/Madrid",
+  "horas": ["09:00"],
+  "modo": "relevo",
+  "equipo": [
+    { "id": "gemini", "rol": "Researcher and verifier" },
+    { "id": "claude", "rol": "Researcher" },
+    { "id": "grok", "rol": "Writer and designer; trends on X" },
+    { "id": "codex", "rol": "Writer and designer" }
+  ],
+  "temas": [
+    { "nombre": "Brain and neuroscience", "escritores": ["claude", "codex"] },
+    { "nombre": "Space", "escritores": ["grok"] },
+    { "nombre": "Health with evidence", "escritores": ["codex"] }
+  ],
+  "rutinas": [
+    { "tipo": "radar", "activa": true, "cadaMin": 60, "ventana": { "desde": "07:00", "hasta": "23:00" }, "equipo": ["grok", "gemini"], "topeDiario": 24, "cantidad": 3 },
+    { "tipo": "desempeno", "activa": true, "horas": ["08:00"] },
+    { "tipo": "mas-como-este", "activa": true, "tras": "desempeno" },
+    { "tipo": "aprender", "activa": true, "horas": ["07:30"] },
+    { "tipo": "redaccion", "activa": true, "equipo": ["grok", "codex", "gemini"], "topeDiario": 30 }
+  ],
+  "destino": "borrador",
+  "viralhunt": { "proyecto": "Lumen Lab", "proyectoId": null, "cuentas": [] },
+  "reglas": { "noPublicar": ["medical advice", "politics"], "fuenteObligatoria": true, "noCopiar": true }
+}

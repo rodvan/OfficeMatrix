@@ -20,7 +20,19 @@ const FUENTE = 'Un estudio de la universidad muestra que dormir siete horas mejo
 
 // El turno también lista misiones previas de la oficina: la tanda se reconoce por su pedido, no por un título suelto.
 const TANDA = /(?:propongan|propose) (\d+) (?:contenidos|pieces)/;
-if (!TANDA.test(turno) && /(?:Cambios pedidos por el usuario|Changes requested by the user)/.test(turno)) {
+// Radar (v2): deja radar.json con N temas. EDITORIAL_RADAR_VACIO=1 simula un radar que no entrega nada.
+const RADAR = /(?:Trend radar for|Radar de tendencias de) .+?: (?:find|encontrad) (\d+)/;
+// Semillas de la tanda (v2): las ids que el servidor listó, en orden (`s-1`, `s-2`…).
+const semillas = [...turno.matchAll(/^- `(s-\d+)`/gm)].map(m => m[1]);
+// Semáforo que entrega el agente: EDITORIAL_SEMAFORO=verde|amarillo|rojo (verde con fuente primaria por defecto).
+const semaforo = process.env.EDITORIAL_SEMAFORO || 'verde';
+if (RADAR.test(turno) && !TANDA.test(turno)) {
+  const n = Number(RADAR.exec(turno)[1]);
+  if (!fs.existsSync('radar.json') && process.env.EDITORIAL_RADAR_VACIO !== '1') {
+    fs.writeFileSync('radar.json', JSON.stringify({ temas: Array.from({ length: n }, (_, i) => ({ tema: `Tema del radar ${i + 1}`, porQue: `Sube +${300 * (i + 1)} % en 6 h`, red: 'x', fuentes: [`https://example.com/radar/${i + 1}`] })) }, null, 2));
+    cambie = true;
+  }
+} else if (!TANDA.test(turno) && /(?:Cambios pedidos por el usuario|Changes requested by the user)/.test(turno)) {
   const file = path.join('propuestas', '1', 'propuesta.json');
   const p = JSON.parse(fs.readFileSync(file, 'utf8'));
   if (!/\(v2\)$/.test(p.hook)) {
@@ -42,6 +54,11 @@ if (!TANDA.test(turno) && /(?:Cambios pedidos por el usuario|Changes requested b
       copy: Object.fromEntries(redes.map(r => [r, copia ? FUENTE : `Copy propio ${i} para ${r}: lo contamos con la voz de la marca.`])),
       hashtags: ['ciencia', 'cerebro'], hora: new Date(Date.now() + (24 + i) * 3600e3).toISOString(), idiomas: ['es'], tipo: 'fact',
       fuente: { nombre: 'X · @cuenta', url: `https://example.com/x/${i}`, metricas: { likes: 1000 * i, views: 90000 * i }, texto: FUENTE },
+      verificacion: {
+        semaforo, verificador: 'claude', nota: 'Comprobado contra el estudio original.',
+        fuentes: semaforo === 'rojo' ? [] : [{ url: `https://example.com/estudio/${i}`, tipo: semaforo === 'verde' ? 'primaria' : 'secundaria' }],
+      },
+      autor: id, ...(semillas[i - 1] ? { semilla: semillas[i - 1] } : {}),
     };
     fs.writeFileSync(path.join(dir, 'propuesta.json'), JSON.stringify(p, null, 2));
     const imageFile = process.env.EDITORIAL_IMAGEN?.replace('{n}', String(i));

@@ -10,8 +10,9 @@
 | 🚀 | [Instalar desde cero](../INSTALAR.md) | Instaladores, sesión en tus CLIs, el asistente *Primeros pasos* | [INSTALL.md](../INSTALL.md) |
 | 🤖 | [Conectar tu propio agente](../AGENTES.md) | `agents.json`, lectores de streaming, el protocolo del turno, Kimi | [AGENTS.md](../AGENTS.md) |
 | 🏛️ | [Modos de trabajo](../MODOS-DE-TRABAJO.md) | Relevo, Delphi y Consejo, y cómo funcionan por dentro | [MODES.md](../MODES.md) |
-| 📰 | [Editorial continua](EDITORIAL.md) | La bandeja, el conector ViralHunt y su API | [EDITORIAL.md](../EDITORIAL.md) |
+| 📰 | [Editorial continua](EDITORIAL.md) y [v2](EDITORIAL-V2.md) | La bandeja, rutinas permanentes, dashboard y ViralHunt | [EDITORIAL.md](../EDITORIAL.md) / [v2](../EDITORIAL-V2.md) |
 | 🛰️ | [Grok Bots](GROK-BOTS.md) | Tus bots de Grok como empleados de una oficina, por webhook | [GROK-BOTS.md](../GROK-BOTS.md) |
+| 💬 | [Discord](DISCORD.md) | Un bot de Discord por oficina, el de la Nave que coordina, avisos y botones para aprobar | [DISCORD.md](../DISCORD.md) |
 | 🧭 | [Para agentes externos](../PARA-AGENTES.md) | Usar una llave de oficina y `om.js` desde otro asistente | [FOR-AGENTS.md](../FOR-AGENTS.md) |
 | 📦 | [Publicar una versión](../PUBLICAR.md) | Para quien mantiene el repo: la rama pública de un solo commit | [PUBLISH.md](../PUBLISH.md) |
 

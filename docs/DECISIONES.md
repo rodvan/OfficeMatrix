@@ -977,3 +977,71 @@ Responde a #3 (Grok): `fusionarRelato` no tenía llamador. Ahora `server.js` lo 
   veredicto, con su propio editor; también sigue en «Your options».
 - **Capturas:** la tarjeta en inglés a 1440 y 390 px en `docs/img/`; las de `docs/evidencia/cierre/` y los registros de
   pruebas de la otra copia no se traen (eran en español y con rutas de su equipo).
+
+## D74-ED · Rutinas permanentes con un planificador puro y la franja tomada antes de esperar (Claude, ronda 1)
+- **Qué:** `lib/rutinas.js` generaliza el reloj de la v1. Cinco rutinas por oficina (`radar`, `desempeno`, `mas-como-este`,
+  `aprender`, `redaccion`), cada una con `cadaMin` (≥ 30), `horas` fijas o `tras` otra rutina, `ventana` local opcional y
+  `topeDiario` de turnos. `rutinaDebida` es pura (reloj inyectado) y decide: inactiva, pausada, esperando, ya-lanzada,
+  antes-de-activar, anterior-abierta, tope o lanzar (con `recuperacion` tras dormir).
+- **Por qué:** el dueño pidió trabajos «diarios y constantes» que no se detienen. Una misión tiene meseta y tope de rondas;
+  una rutina no. Cada ejecución es una misión corta (o una llamada del servidor) que termina; la rutina sigue.
+- **Compatibilidad:** «redaccion» con horas fijas usa siempre `regla.horas` y su franja sigue en `estado.json`
+  (`ultimaFranja`): una oficina v1 funciona igual sin tocar nada, y `tests/editorial.test.js` sigue en verde.
+- **Nunca se apaga sola:** si cae una CLI, la tanda sigue con las demás y el informe lista `cayeron`; si caen todas,
+  `ok:false` y reintenta en la siguiente franja. El estimado de turnos (equipo × 2) se corrige con los reales al cerrar.
+
+## D75-ED · Solo usan agentes las rutinas que necesitan criterio (Claude, ronda 1)
+- **Qué:** `desempeno`, `mas-como-este` y `aprender` son del servidor: llaman a ViralHunt con el token y escriben archivos.
+  `radar` (1 ronda, 2 agentes) y `redaccion` (2 ciclos) son misiones.
+- **Por qué:** leer `stats.php`, buscar con `search.php` o leer el `edit_log` no necesita una CLI; hacerlo con agentes
+  gastaría suscripción y metería al agente en contacto con datos que el servidor ya tiene. El token nunca sale del servidor.
+
+## D76-ED · La cadena viaja por archivos de la oficina, con el origen pegado a cada propuesta (Claude, ronda 1)
+- **Qué:** `editorial/radar/<fecha>.json`, `editorial/desempeno/<fecha>.json`, `editorial/semillas.json` y
+  `editorial/ediciones.json`. Las semillas se eligen por prioridad (encargo → reuso → ganador → radar). El brief las lista
+  con su id, el agente escribe `semilla` y el servidor copia su origen a `propuesta.cadena`. `lineaOrigen` da la frase del
+  panel. Las semillas que una tanda no usó vuelven a pendientes.
+- **Desempeño no inventa:** con `ready:false` o sin cifras de interacción no hay media ni ganadores; la cadena sigue con
+  el radar. Los rasgos del ganador (formato, hora, tema) solo salen de NUESTRA propuesta si el post es uno que mandamos.
+
+## D77-ED · Semáforo que el servidor recalcula y no deja mejorar (Claude, ronda 1)
+- **Qué:** `propuesta.verificacion` con `fuentes` tipadas. El semáforo final es el peor entre el declarado y el que
+  prueban las fuentes; sin `verificador` del equipo, como mucho amarillo. Aprobar: roja → 409 `semaforo_rojo` siempre;
+  amarilla → 409 `confirmar_amarillo` salvo `confirmarAmarillo: true`. Las propuestas v1 cuentan como amarillas.
+- **Por qué:** «no caer en desinformación» no puede depender de que el agente se califique bien a sí mismo.
+
+## D78-ED · El gusto a mano son notas aparte, y la marca vive en los datos de la oficina (Claude, ronda 1)
+- **Qué:** `PUT …/gusto { notas }` escribe `editorial/gusto-notas.md`, que encabeza `gusto-editorial.md`; el resumen se
+  reescribe con cada decisión y con el `edit_log`, pero las notas no se pisan. La marca (paleta, tipografías, handles,
+  formato, proporción, referencias en `editorial/marca/`) va en `editorial.json` de la oficina y viaja a la misión en
+  `marca/`. En el repositorio solo hay una marca ficticia (`docs/ejemplos/editorial.ejemplo.json`).
+- **Pendiente fuera de esta carpeta:** prellenar la marca de Cerebro Digital en `oficinas/cerebro-digital/editorial.json`
+  lo hace el dueño desde ⚙ (o un turno con permiso sobre los datos reales): esta misión no puede salir de su carpeta.
+
+## D79-ED · Dashboard editorial dedicado (/editorial) con vistas especializadas y modo responsive 390 px (Gemini, ronda 1)
+- **Qué:** `public/editorial.html` y `public/editorial.js`. Página independiente servida en `/editorial` con sincronización SSE (`/api/events`), conmutador de oficinas, y pestañas de nivel superior: Bandeja (con filtros por búsqueda, red, tema, escritor, estado), Calendario (reprogramación con `PATCH …/hora` y explicación de tokens writer/publisher), Temas y escritores (creación de pilares, encargos prioritarios con `POST …/encargos` y tableros individuales de escritores), Rutinas permanentes (tarjetas para las 5 rutinas con Pausar/Reanudar/Ejecutar ahora y edición visual de reglas sin JSON), Gusto aprendido (edición directa de notas manuscritas), Galería (reutilización y exportación), Marca de oficina y Conexión ViralHunt.
+- **Por qué:** el brief exige una página propia separada de la nave y de las misiones, que el dueño pueda usar cómodamente desde su celular a 390 px con `lan.js` sin fricción.
+
+## D80-ED · Exportación de galería a .zip sin dependencias y semáforo interactivo con confirmación explícita (Gemini, ronda 1)
+- **Qué:** `GET /api/oficinas/<id>/editorial/galeria/exportar?ids=` en `server.js` y `lib/editorial.js`. Empaqueta propuestas en un archivo `.zip` en modo Store usando `zlib.crc32` nativo de Node.js, incluyendo `propuesta.json`, resúmenes de copy formateados y archivos de imagen adjuntos. En la bandeja, el semáforo interactúa bloqueando la aprobación de propuestas rojas con advertencia explicativa, y requiriendo confirmación explícita (`confirmarAmarillo: true`) en propuestas amarillas.
+- **Por qué:** cero dependencias externas y cumplimiento estricto del protocolo antidesinformación del brief.
+
+## D81-ED · Un solo coste por ejecución para el tope, y zip que funciona en Node 18 (Claude, ronda 2)
+- **Qué:** `costeEstimado` (lib/rutinas.js) es la única cifra: el reloj comprueba el tope con ella y la ejecución apunta la misma. Radar = una ronda en relevo con 2 agentes como mucho; redacción = equipo × 2. Tope por defecto del radar: 48. El panel lee `turnosHoy` como número y enseña el informe de la última ejecución y las CLI caídas con claves i18n. `crearZip` usa `zlib.crc32` si existe y una tabla CRC-32 si no; nombres con el flag UTF-8.
+- **Por qué:** el reloj estimaba 4 turnos por radar y la ejecución apuntaba 2, así que el tope cortaba antes de lo configurado; con 24 de tope un radar horario de 2 agentes paraba a media tarde. El panel pintaba siempre «0 of N» porque leía `turnosHoy.turnos`. `zlib.crc32` no existe en Node 18, que es lo que promete el README.
+- **Prueba:** `reloj del servidor: radar horario…` (por `relojEditorial`, no por la función pura): dispara a la hora, no duplica la franja, con todas las CLI caídas informa `ok:false` y sigue activa, reintenta en la siguiente franja y el tope 2/2 la salta con aviso en la bitácora.
+
+## D82-ED · Ajuste responsivo de tarjetas de rutinas a 390 px, enlaces profundos a pestañas y captura con historial real (Gemini, ronda 2)
+- **Qué:**
+  - `public/style.css`: `.ed-routine-card` con `min-width: 0;` y `.ed-routine-info` con `overflow-wrap: anywhere; word-break: break-word;` para garantizar que líneas de resultados extensas (ganadores, semillas, ediciones, motivo de fallo o CLIs caídas) se ajusten sin desbordar la tarjeta en viewports móviles de 390 px.
+  - `public/editorial.js`: soporte de enlaces directos a pestañas vía parámetro de consulta (`?tab=...`) o hash (`#tab`), con sincronización automática en la URL (`history.replaceState`) al conmutar entre pestañas; `renderRoutines(overrideData)` admite datos inyectados para facilitar testing unitario sin perder fallback a `fullDashboardData`.
+  - `scripts/capturar-editorial.js`: sembrado de estado previo e historial de ejecuciones en `editorial/rutinas.json` (`radar` y `desempeno` con turnos de hoy e informes de resultado); regeneración de las 4 capturas oficiales del dashboard (`editorial-en-1440.png`, `editorial-en-390.png`, `editorial-es-1440.png`, `editorial-es-390.png`).
+  - `tests/editorial-ui.test.js`: prueba unitaria de renderizado de panel de rutinas cubriendo formateo de outcomes de éxito con métricas, fallos con motivo, advertencia de proximidad al tope diario (`warn`), y CLIs caídas.
+- **Por qué:** Claude señaló verificar que la línea «Outcome:» no desborde a 390 px y regenerar las capturas con turnos e informes reales; además, el soporte de deep links por pestaña mejora la usabilidad y navegación directa.
+
+## D83-ED · Contrato del conector revisado contra la skill: stats.php degrada con 503 y edit_log sin duplicados (Claude, ronda 3)
+- **Qué:** revisión de `lib/viralhunt.js` y `lib/cadena.js` contra la skill `viralhunt:viralhunt` (§2 `search.php`, §5b `edit_log`, §8 `get`, §8a `stats.php`), sin llamar a la API. Coinciden parámetros y campos: `search.php` con `keyword`, `time_range` (formato con unidad), `per_source` 1..50 y `sort=engagement`; filas `platform, title, post_url, author_handle, engagement_score, growth_24h` (sin `raw`); `growth_24h` se guarda tal cual y `null` no se pinta como 0; `kind` solo sale si es `fact|meme|quote|opinion|promo`. Dos huecos corregidos:
+  - `stats()` trata un 503 (función no activa en ese servidor) como `ready:false` con el mensaje de ViralHunt, igual que `editLog()`. Antes la rutina «Desempeño» acababa en `ok:false`.
+  - `rutinaAprender` une el `edit_log` con `unirEdiciones` (clave: la fila entera, porque la skill no garantiza id) y el informe cuenta solo las ediciones nuevas. Antes, tras un fallo se releían 7 días y cada edición entraba otra vez en el gusto («acortó el copy N veces» inflado).
+  - `editLog()` acepta también `edit_log` y `rows` como clave de la lista (la skill no nombra la clave).
+- **Prueba:** en `cadena completa…`: un 503 de `stats.php` deja `ok:true, ready:false, ganadores:0` y la rutina activa; una segunda pasada de «Aprender» con la misma edición informa `ediciones: 0` y `ediciones.json` sigue con `total: 1`.

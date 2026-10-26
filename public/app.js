@@ -737,6 +737,8 @@ function openOfficeDialog(id) {
   }
   $('officeBots').hidden = !o;
   if (o) loadOfficeBots(o.id).catch(err => { $('officeHint').textContent = err.message; });
+  $('officeDiscord').hidden = !o;
+  if (o) loadDiscord(o.id).catch(err => { $('officeHint').textContent = err.message; });
   $('officeHint').textContent = '';
   $('officeDialog').showModal();
 }
@@ -1065,6 +1067,50 @@ async function loadOfficeBots(officeId) {
   const others = oficinas.filter(x => x.id !== officeId && x.id !== 'edificio');
   $('botCopyDest').innerHTML = others.map(x => `<option value="${esc(x.id)}">${esc(x.nombre)}</option>`).join('') || `<option value="">${esc(t('wizard.noOtherOffice'))}</option>`;
 }
+// Discord de la oficina (docs/DISCORD.md). El token se escribe y nunca vuelve del servidor.
+const dcIds = v => v.split(/[\s,;]+/).map(x => x.trim()).filter(Boolean);
+async function loadDiscord(officeId) {
+  const d = await api(`/api/oficinas/${encodeURIComponent(officeId)}/discord`);
+  if (officeEditing !== officeId) return;
+  $('dcToken').value = '';
+  $('dcToken').placeholder = d.configurado ? t('ui.dc.tokenSaved') : t('ui.dc.tokenPh');
+  $('dcUsers').value = d.usuarios.join(', ');
+  $('dcChannels').value = d.canales.join(', ');
+  $('dcAlerts').value = d.canalAvisos || '';
+  $('dcAvMis').checked = d.avisos.misiones !== false;
+  $('dcAvFail').checked = d.avisos.fallos !== false;
+  $('dcAvProp').checked = d.avisos.propuestas !== false;
+  $('dcShip').checked = d.permitirNave !== false;
+  $('dcShipWrap').hidden = d.nave;
+  $('dcOn').checked = d.configurado ? d.activo : true;
+  const err = d.error === 'token' ? t('ui.dc.errToken') : d.error === 'intents' ? t('ui.dc.errIntents') : d.error || '';
+  $('dcState').textContent = !d.configurado ? t('ui.dc.state.none')
+    : `${t(`ui.dc.state.${d.estado}`)}${d.bot ? ` · @${d.bot.nombre}` : ''}${err ? ` · ${err}` : ''}${!d.usuarios.length ? ` · ${t('ui.dc.noUsers')}` : ''}`;
+  $('dcInvite').hidden = !d.invitacion;
+  if (d.invitacion) $('dcInvite').href = d.invitacion;
+  $('dcRemove').hidden = $('dcTest').hidden = !d.configurado;
+}
+$('dcSave').addEventListener('click', ev => withBusy(ev.target, async () => {
+  const id = officeEditing;
+  const body = {
+    usuarios: dcIds($('dcUsers').value), canales: dcIds($('dcChannels').value), canalAvisos: $('dcAlerts').value.trim() || null,
+    avisos: { misiones: $('dcAvMis').checked, fallos: $('dcAvFail').checked, propuestas: $('dcAvProp').checked },
+    permitirNave: $('dcShip').checked, activo: $('dcOn').checked,
+  };
+  if ($('dcToken').value.trim()) body.token = $('dcToken').value.trim();
+  try {
+    await api(`/api/oficinas/${encodeURIComponent(id)}/discord`, { method: 'PUT', body: JSON.stringify(body) });
+    toast(t('ui.dc.saved'));
+    await loadDiscord(id);
+  } catch (err) { toast(err.message, true); }
+}));
+$('dcTest').addEventListener('click', ev => withBusy(ev.target, async () => {
+  try { await api(`/api/oficinas/${encodeURIComponent(officeEditing)}/discord/probar`, { method: 'POST', body: '{}' }); toast(t('ui.dc.testSent')); } catch (err) { toast(err.message, true); }
+}));
+$('dcRemove').addEventListener('click', ev => withBusy(ev.target, async () => {
+  try { await api(`/api/oficinas/${encodeURIComponent(officeEditing)}/discord`, { method: 'DELETE' }); toast(t('ui.dc.removed')); await loadDiscord(officeEditing); } catch (err) { toast(err.message, true); }
+}));
+
 $('botsUrlBtn').addEventListener('click', async () => {
   try {
     const r = await api('/api/bots/ajustes', { method: 'PUT', body: JSON.stringify({ publicUrl: $('botsUrl').value }) });
@@ -2678,6 +2724,7 @@ function connect() {
     }
     // Un bot que contesta a «Probar» (o cualquier cambio de bots) se ve al momento en la ventana de la oficina.
     if (ev.type === 'oficinas-updated' && $('officeDialog').open && officeEditing) loadOfficeBots(officeEditing).catch(() => {});
+    if (ev.type === 'discord-updated' && $('officeDialog').open && ev.oficina === officeEditing) loadDiscord(officeEditing).catch(() => {});
     if (ev.type === 'entrantes-updated' && ev.oficina === oficina) loadInbound();
     // El tablero «Hoy» se rehace con cada hecho del servidor (si no hay misión abierta).
     if (['cycle-started', 'cycle-ended', 'chat-updated', 'memory-updated', 'entrantes-updated', 'oficinas-updated', 'agent-failed'].includes(ev.type)) loadHoySoon();

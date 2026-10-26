@@ -219,6 +219,8 @@ Not every message has to be a mission. Each office has a **Chat** tab next to mi
 
 To connect a bot, open the office ⚙ and follow the live checklist. The step-by-step, including the Cloudflare tunnel (service only `http://localhost:4323`), is in [docs/GROK-BOTS.md](docs/GROK-BOTS.md). Spanish guide: [docs/es/GROK-BOTS.md](docs/es/GROK-BOTS.md).
 
+**💬 Discord.** Give each office its own Discord bot: talk to that office's AIs from your phone (`@bot @grok …`), get mission alerts, and approve editorial proposals with a button. The Ship's bot shows every office's status and asks the office you name. No tunnel needed. Guide: [docs/DISCORD.md](docs/DISCORD.md).
+
 ---
 
 ## 🌐 Sister App: ViralHunt Integration
@@ -236,7 +238,7 @@ powershell -File tests/helpers/editorial-images.ps1   # Windows: three sample im
 node tests/helpers/editorial-demo.js                  # opens on port 4400, data in .demo-editorial/
 ```
 
-Design and API: [`docs/EDITORIAL.md`](docs/EDITORIAL.md).
+Design and API: [`docs/EDITORIAL.md`](docs/EDITORIAL.md) · Continuous routines and dashboard v2: [`docs/EDITORIAL-V2.md`](docs/EDITORIAL-V2.md) ([español](docs/es/EDITORIAL-V2.md)).
 
 ---
 
