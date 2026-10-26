@@ -2273,7 +2273,7 @@
   "ui.dc.noUsers": "nobody is authorized yet: mention the bot to get your ID",
   "discord.setup": "Hi! I am the {office} bot from OfficeMatrix. Your Discord ID is {id}. To talk to me, the owner pastes it in OfficeMatrix → ⚙ {office} → Discord → Authorized users.",
   "discord.help": "**{office}** · mention me and write your message. Use @name to pick an AI (e.g. @grok, @claude); without it the office host answers. `proposals` shows the pending editorial proposals.",
-  "discord.helpShip": "**Ship** · `status` shows every office. `viralhunt: your question` asks that office (only offices that share with the Ship). Anything else goes to the Ship's own chat.",
+  "discord.helpShip": "**Ship** · `status` shows every office. `viralhunt: your question` asks that office (only offices that share with the Ship). `@claude …` talks to one of the Ship's AIs.",
   "discord.noStatus": "No status available.",
   "discord.shipBlocked": "{office} does not share with the Ship. Ask its own bot.",
   "discord.noReply": "Nobody answered this time.",
@@ -2301,5 +2301,6 @@
   "discord.test": "✅ OfficeMatrix · {office} is connected to this channel.",
   "discord.status.title": "🛸 **Ship · status**",
   "discord.status.line": "• **{office}** · {running} missions running · {pending} pending proposals · bot {bot}",
-  "discord.status.private": "• **{office}** · does not share with the Ship"
+  "discord.status.private": "• **{office}** · does not share with the Ship",
+  "ui.dc.shipTitle": "🛸 SHIP · DISCORD"
 }

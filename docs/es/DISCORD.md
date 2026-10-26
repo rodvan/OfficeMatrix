@@ -50,7 +50,7 @@ Tu servidor de Discord
 7. Opcional: un **Canal de avisos**, los **Canales que escucha** y qué avisos quieres.
 8. Pulsa **Enviar prueba**.
 
-Repítelo en cada oficina, con una aplicación de Discord por oficina. Para la Nave, abre el ⚙ estando en la Nave.
+Repítelo en cada oficina, con una aplicación de Discord por oficina. Para la Nave, selecciona la Nave (🛸) y abre su ⚙: solo trae la sección de Discord.
 
 ## 🗣️ Cómo se usa
 
@@ -62,6 +62,7 @@ Repítelo en cada oficina, con una aplicación de Discord por oficina. Para la N
 | `@bot ayuda` | Un recordatorio corto |
 | Nave: `@nave estado` | Por oficina: misiones en curso, propuestas pendientes y el estado de su bot |
 | Nave: `@nave acme: ¿cómo va el landing?` | Le pregunta a la oficina Acme (si comparte) y contesta con 🏢 Acme |
+| Nave: `@nave @claude resume la semana` | Contesta una IA de la Nave. Sin oficina ni `@nombre`, la Nave muestra su ayuda |
 
 Los mensajes de Discord también quedan en el chat de la oficina del panel, como «Discord · tu nombre», así que es una
 sola conversación.

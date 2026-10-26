@@ -686,7 +686,8 @@ function renderOffices() {
   $('officeSel').innerHTML = oficinas.map(x => `<option value="${esc(x.id)}" ${x.id === oficina ? 'selected' : ''}>${x.id === 'edificio' ? '🛸' : '🏢'} ${esc(officeName(x).toUpperCase())}${x.enCurso ? ` · ${t('ui.office.inProgress', { n: x.enCurso })}` : ''}</option>`).join('');
   document.querySelector('.office-bar').style.setProperty('--oc', o.color || '#39e58c');
   $('officeDesc').textContent = o.id === 'edificio' ? t('ui.office.edificioDesc') : t('ui.office.manual', { desc: o.descripcion || o.nombre });
-  $('officeCfgBtn').hidden = o.id === 'edificio';
+  // En la Nave el ⚙ solo trae su bot de Discord (la Nave no se renombra ni tiene equipo propio).
+  $('officeCfgBtn').hidden = false;
   $('sideChat').hidden = o.id === 'edificio';
   if (o.id === 'edificio' && officeChatOn) setSide('missions');
 }
@@ -713,7 +714,9 @@ let officeEditing = null; // id de la oficina que se configura (null = nueva)
 function openOfficeDialog(id) {
   const o = id ? oficinas.find(x => x.id === id) : null;
   officeEditing = o?.id || null;
-  $('officeDlgTitle').textContent = o ? t('ui.office.editTitle', { name: o.nombre.toUpperCase() }) : t('ui.office.newTitle');
+  const ship = o?.id === 'edificio';
+  $('officeForm').classList.toggle('ship-only', ship);
+  $('officeDlgTitle').textContent = ship ? t('ui.dc.shipTitle') : o ? t('ui.office.editTitle', { name: o.nombre.toUpperCase() }) : t('ui.office.newTitle');
   $('officeSave').textContent = o ? t('ui.office.save') : t('ui.office.create');
   $('officeName').value = o?.nombre || '';
   $('officeDescIn').value = o?.descripcion || '';

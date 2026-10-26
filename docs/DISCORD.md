@@ -49,7 +49,7 @@ Your Discord server
 7. Optional: an **Alerts channel**, the **Channels it listens to**, and which alerts you want.
 8. Press **Send a test**.
 
-Repeat it for each office, with one Discord application each. For the Ship, open ⚙ while on the Ship.
+Repeat it for each office, with one Discord application each. For the Ship, select the Ship (🛸) and open its ⚙: it only shows the Discord section.
 
 ## 🗣️ Using it
 
@@ -61,6 +61,7 @@ Repeat it for each office, with one Discord application each. For the Ship, open
 | `@bot help` | A short reminder |
 | Ship: `@ship status` | Per office: missions running, pending proposals and its bot's state |
 | Ship: `@ship acme: how is the landing going?` | It asks the Acme office (if it shares) and replies with 🏢 Acme |
+| Ship: `@ship @claude summarize the week` | One of the Ship's AIs answers. Without an office or an `@name`, the Ship shows its help |
 
 Discord messages also land in the office chat in the panel, as «Discord · your name», so the conversation is one.
 

@@ -1554,5 +1554,8 @@ svg.ch .cell { fill: var(--text); }
 /* Discord en el ⚙ de la oficina (docs/DISCORD.md) */
 .dc-state { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 4px 0; }
 .dc-checks { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 6px 0; }
-.dc-checks label { display: inline-flex; gap: 6px; align-items: center; }
+.dc-checks label { display: inline-flex !important; flex-direction: row !important; gap: 6px; align-items: center; margin: 0; }
+.dc-checks input[type=checkbox] { width: auto; margin: 0; flex: none; }
 .dc-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+/* El ⚙ de la Nave: solo la sección de Discord */
+#officeForm.ship-only > :not(#officeDiscord):not(.composer-row), #officeForm.ship-only #officeSave { display: none; }
