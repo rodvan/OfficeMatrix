@@ -75,7 +75,8 @@ const discordBots = createDiscord({
 // Las llaves que nunca se escriben en el chat ni se reenvían: las de los bots y el token de Discord de la oficina.
 const secretsOf = office => [...bots.secretValues(office), ...discordBots.secretos(office)];
 const chatBusy = new Set();
-const CHAT_CLI_MS = Number(process.env.OFFICEMATRIX_CHAT_CLI_MS) || 20000;
+// Una CLI tarda en arrancar (Gemini y Codex, más): 20 s cortaba respuestas normales.
+const CHAT_CLI_MS = Number(process.env.OFFICEMATRIX_CHAT_CLI_MS) || 180000;
 const CHAT_BOT_MS = Number(process.env.OFFICEMATRIX_CHAT_BOT_MS) || 20000;
 // Orden fija y sin metacaracteres: el texto del usuario va en un archivo del cajón, no en la línea de órdenes.
 const CHAT_ARGV = 'Read the file chat-prompt.md in the current directory and reply with the chat message only. Do not edit, create or delete files.';
@@ -576,7 +577,7 @@ function runChatCli(office, quien, mensaje, history, { sinArchivos = false } = {
       parser.end();
       const texto = redact(parser.finalText(), secretsOf(office));
       if (timedOut || code !== 0 || !texto) {
-        const fallo = classifyFailure({ code: code || 1, stdout, stderr, report: texto, timedOut, timeoutMinutes: timeoutMs / 60000 })
+        const fallo = classifyFailure({ code: code || 1, stdout, stderr, report: texto, timedOut, timeoutMinutes: Math.round(timeoutMs / 6000) / 10 })
           || chatFailure(stderr || i18n.t('server.chat.empty', { name: quien.nombre }));
         return resolve({ texto, fallo });
       }
