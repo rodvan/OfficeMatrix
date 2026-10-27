@@ -206,11 +206,11 @@ test('Nave: estado de todas, pregunta a una oficina que comparte y respeta a la 
   await until(() => h.sent.some(s => s.content.startsWith('discord.shipBlocked')));
   assert.strictEqual(h.chats.length, 1, 'la oficina privada no recibe la pregunta');
   h.msg(TOKEN, { content: 'hola nave' });
-  await until(() => h.sent.some(s => s.content === 'discord.helpShip'));
-  assert.strictEqual(h.chats.length, 1, 'sin oficina ni @IA, la Nave contesta con la ayuda');
-  h.msg(TOKEN, { content: '@claude resume la semana' });
   await until(() => h.chats.length === 2);
-  assert.strictEqual(h.chats[1].office, 'edificio');
+  assert.strictEqual(h.chats[1].office, 'edificio', 'sin oficina nombrada, la Nave le pregunta a su propio chat');
+  h.msg(TOKEN, { content: '@claude resume la semana' });
+  await until(() => h.chats.length === 3);
+  assert.strictEqual(h.chats[2].office, 'edificio');
 });
 
 test('avisos: misión terminada a su oficina, titular a la Nave; nada de la oficina que no comparte', async () => {

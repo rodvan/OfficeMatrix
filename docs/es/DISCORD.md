@@ -57,12 +57,12 @@ Repítelo en cada oficina, con una aplicación de Discord por oficina. Para la N
 | Escribes en Discord | Qué pasa |
 | --- | --- |
 | `@bot @grok busca tendencias de Artemis` | Contesta esa IA de la oficina, firmado con su nombre |
-| `@bot ¿qué opinan?` (sin `@nombre`) | Contesta el **anfitrión del chat** de la oficina. Se elige en ⚙ → Anfitrión del chat |
+| `@bot ¿qué opinan?` (sin `@nombre`) | Contesta el **anfitrión del chat** de la oficina (⚙ → Anfitrión del chat); si no hay, Claude o la primera IA |
 | `@bot propuestas` | Las propuestas editoriales pendientes, como tarjetas con botones |
 | `@bot ayuda` | Un recordatorio corto |
 | Nave: `@nave estado` | Por oficina: misiones en curso, propuestas pendientes y el estado de su bot |
 | Nave: `@nave acme: ¿cómo va el landing?` | Le pregunta a la oficina Acme (si comparte) y contesta con 🏢 Acme |
-| Nave: `@nave @claude resume la semana` | Contesta una IA de la Nave. Sin oficina ni `@nombre`, la Nave muestra su ayuda |
+| Nave: `@nave @claude resume la semana` | Contesta esa IA de la Nave. Sin oficina ni `@nombre`, contesta Claude (o la primera IA) |
 
 Los mensajes de Discord también quedan en el chat de la oficina del panel, como «Discord · tu nombre», así que es una
 sola conversación.

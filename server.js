@@ -62,7 +62,7 @@ const officeChat = createOfficeChat(oficinas); // chat de oficina, aparte de las
 const discordBots = createDiscord({
   oficinas, EDIFICIO, t: (k, v) => i18n.t(k, v),
   deps: {
-    chat: (office, texto, { autor } = {}) => runOfficeChat(office, texto, { autor, sinArchivos: true }),
+    chat: (office, texto, { autor } = {}) => runOfficeChat(office, texto, { autor, sinArchivos: true, anfitrionDefecto: true }),
     aprobar: (office, pid, input) => aprobarPropuesta(office, pid, input),
     rechazar: (office, pid, input) => rechazarPropuesta(office, pid, input),
     propuestas: office => (editorial.regla(office) ? editorial.galeria(office, {}) : []),
@@ -596,7 +596,7 @@ function runChatCli(office, quien, mensaje, history, { sinArchivos = false } = {
   });
 }
 
-async function runOfficeChat(office, texto, { autor = null, sinArchivos = false } = {}) {
+async function runOfficeChat(office, texto, { autor = null, sinArchivos = false, anfitrionDefecto = false } = {}) {
   if (chatBusy.has(office)) { const err = new Error(i18n.t('chat.err.busy')); err.status = 409; throw err; }
   chatBusy.add(office);
   try {
@@ -604,7 +604,9 @@ async function runOfficeChat(office, texto, { autor = null, sinArchivos = false 
     const secrets = secretsOf(office);
     const clean = redact(String(texto || ''), secrets).trim();
     if (!clean) { const err = new Error(i18n.t('server.error.taskRequired')); err.status = 400; throw err; }
-    const route = recipients(clean, members, officeChat.readSettings(office).anfitrion);
+    // Desde Discord, sin anfitrión elegido contesta Claude (o la primera IA): un "hola" no debe quedarse sin respuesta.
+    const porDefecto = anfitrionDefecto ? (members.find(m => m.tipo === 'cli' && m.id === 'claude') || members.find(m => m.tipo === 'cli')) : null;
+    const route = recipients(clean, members, officeChat.readSettings(office).anfitrion || porDefecto?.id);
     const userMsg = officeChat.append(office, { autor: { tipo: 'owner', id: 'owner', nombre: autor || 'You' }, texto: clean, menciones: route.quienes.map(q => q.mencion) });
     broadcast({ type: 'office-chat', oficina: office, fase: 'mensaje', mensaje: userMsg });
     const produced = [userMsg];

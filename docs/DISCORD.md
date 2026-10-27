@@ -56,12 +56,12 @@ Repeat it for each office, with one Discord application each. For the Ship, sele
 | You write in Discord | What happens |
 | --- | --- |
 | `@bot @grok find trends about Artemis` | That AI of the office answers, signed with its name |
-| `@bot what do you think?` (no `@name`) | The office's **chat host** answers. Set it in ⚙ → Chat host |
+| `@bot what do you think?` (no `@name`) | The office's **chat host** answers (⚙ → Chat host); if none is set, Claude or the first AI |
 | `@bot proposals` | The pending editorial proposals, as cards with buttons |
 | `@bot help` | A short reminder |
 | Ship: `@ship status` | Per office: missions running, pending proposals and its bot's state |
 | Ship: `@ship acme: how is the landing going?` | It asks the Acme office (if it shares) and replies with 🏢 Acme |
-| Ship: `@ship @claude summarize the week` | One of the Ship's AIs answers. Without an office or an `@name`, the Ship shows its help |
+| Ship: `@ship @claude summarize the week` | That AI of the Ship answers. Without an office or an `@name`, Claude (or the first AI) answers |
 
 Discord messages also land in the office chat in the panel, as «Discord · your name», so the conversation is one.
 
