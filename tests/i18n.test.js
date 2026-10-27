@@ -115,7 +115,7 @@ test('i18n: la interfaz no pinta el veredicto interno en crudo', () => {
 
 test('i18n: toda clave usada en el código y en el HTML existe', () => {
   const en = dict('en');
-  const files = ['server.js', 'om.js', ...fs.readdirSync(path.join(ROOT, 'lib')).map(f => `lib/${f}`),
+  const files = ['server.js', 'om.js', ...fs.readdirSync(path.join(ROOT, 'lib')).filter(f => f.endsWith('.js')).map(f => `lib/${f}`),
     ...fs.readdirSync(path.join(ROOT, 'public')).filter(f => f.endsWith('.js')).map(f => `public/${f}`),
     ...fs.readdirSync(path.join(ROOT, 'scripts')).filter(f => f.endsWith('.js')).map(f => `scripts/${f}`)];
   const missing = [];

@@ -102,8 +102,8 @@ solo en el chat.
 | Con npm (Node 22.19 o más) | `npm install -g @moonshot-ai/kimi-code` |
 
 El script oficial no necesita Node. En Windows, Kimi necesita **Git for Windows**; si su Git Bash no está en el sitio
-de siempre, indica la ruta con la variable `KIMI_SHELL_PATH`. Comprueba la instalación con `kimi --version` (la CLI
-nueva va por la 0.x; si ves 1.x, es la vieja).
+de siempre, indica la ruta con la variable `KIMI_SHELL_PATH`. Comprueba la instalación con `kimi --version` y que
+el ejecutable sea el de `~/.kimi-code/bin` (el 27 de octubre de 2026 iba por la 2.3.3).
 
 ### 2. Iniciar sesión con la membresía
 
@@ -137,6 +137,10 @@ OAuth** (tu membresía), no la API key de Moonshot Open Platform.
   preguntar. Por eso la referencia prohíbe combinar `-p` con `--yolo`, `--auto` o `--plan`. Hoy **no hay un flag que limite
   la escritura a la carpeta actual** (como `--sandbox workspace-write` de Codex). Úsalo solo en misiones que no te importe
   que toquen fuera de su carpeta, y revisa lo que cambió.
+- **Chat de oficina y Discord:** ahí Kimi va de solo lectura con un agente propio (`--agent-file`, en `lib/kimi/`). Su
+  lista de herramientas solo lee, busca y navega (`chat.md`); desde Discord, solo busca en la web (`chat-sin-archivos.md`),
+  igual que Claude. Kimi vuelve a comprobar esa lista antes de ejecutar cada herramienta. Comprobado el 27 de octubre de
+  2026: con `chat.md` leyó un archivo y no pudo crear otro ni ejecutar un comando.
 
 ### 4. El perfil
 

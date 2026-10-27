@@ -105,10 +105,19 @@ test('menciones: cero sin anfitrión, una, dos en orden, y el anfitrión si no h
   assert.match(wizard.body.bloques.json, /"tipo": "chat"/);
   assert.ok(!JSON.stringify(wizard.body).includes(KEY));
 
-  // Kimi con -p aprueba sola sus herramientas: no entra al chat, que es de solo lectura.
+  // Kimi entra al chat con su agente de solo lectura (lib/kimi/chat.md); desde Discord, con el de solo web.
   const sala = await api('/api/oficinas/sala/chat');
-  assert.ok(!sala.body.miembros.some(m => m.id === 'kimi'));
-  assert.ok(sala.body.miembros.some(m => m.id === 'sj'));
+  assert.ok(sala.body.miembros.some(m => m.id === 'kimi'));
+  const kimiArgs = readOnlyArgs('kimi', ['-p', '{prompt}', '--output-format', 'stream-json', '--yolo', '--agent-file', 'otro.md']);
+  assert.deepStrictEqual(kimiArgs.slice(0, 4), ['-p', '{prompt}', '--output-format', 'stream-json']);
+  assert.ok(!kimiArgs.includes('--yolo') && !kimiArgs.includes('otro.md'));
+  assert.strictEqual(kimiArgs.at(-2), '--agent-file');
+  assert.match(kimiArgs.at(-1), /kimi[\\/]chat\.md$/);
+  assert.match(readOnlyArgs('kimi', ['-p', '{prompt}'], { sinArchivos: true }).at(-1), /kimi[\\/]chat-sin-archivos\.md$/);
+  for (const f of ['chat.md', 'chat-sin-archivos.md']) {
+    const tools = fs.readFileSync(path.join(__dirname, '..', 'lib', 'kimi', f), 'utf8').match(/^tools: (.*)$/m)[1].split(',').map(s => s.trim());
+    assert.ok(!tools.some(t => ['Write', 'Edit', 'Bash', 'Agent', 'AgentSwarm', 'CronCreate'].includes(t)), `${f} solo lee: ${tools}`);
+  }
 
   const none = await api('/api/oficinas/sala/chat', { method: 'POST', body: JSON.stringify({ texto: 'hola sin mencion' }) });
   assert.strictEqual(none.status, 200);
