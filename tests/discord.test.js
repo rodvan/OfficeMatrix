@@ -131,11 +131,13 @@ function harness({ offices = ['viralhunt', 'cerebro', 'privada'] } = {}) {
       send: async (canal, m, files) => { sent.push({ token, canal, ...m, files }); return { id: String(sent.length) }; },
       edit: async (canal, id, m) => { edits.push({ token, canal, id, ...m }); return {}; },
       typing: async () => null,
+      mensaje: async (canal, id) => (id === 'rol-img' ? { content: '<@&555> @codex traduce esta imagen', attachments: [{ filename: 'foto.png', content_type: 'image/png', size: 4, url: 'https://cdn.discordapp.com/a/foto.png' }, { filename: 'notas.txt', content_type: 'text/plain', size: 4, url: 'https://cdn.discordapp.com/a/notas.txt' }] } : null),
+      descargar: async url => Buffer.from(url.endsWith('foto.png') ? 'PNG!' : 'txt'),
       interaction: async (id, itoken, type, data) => { callbacks.push({ id, type, data }); return null; },
     }),
   };
   const deps = {
-    chat: async (office, texto, { autor }) => { chats.push({ office, texto, autor }); return [{ autor: { tipo: 'owner', nombre: autor }, texto }, { autor: { tipo: 'cli', nombre: 'Grok', puesto: 'Lead' }, texto: `respuesta de ${office}` }]; },
+    chat: async (office, texto, { autor, adjuntos }) => { chats.push({ office, texto, autor, ...(adjuntos?.length ? { adjuntos } : {}) }); return [{ autor: { tipo: 'owner', nombre: autor }, texto }, { autor: { tipo: 'cli', nombre: 'Grok', puesto: 'Lead' }, texto: `respuesta de ${office}` }]; },
     aprobar: async (office, pid, input) => {
       approvals.push({ office, pid, input });
       const p = pendientes[office].find(x => x.id === pid);
@@ -199,6 +201,11 @@ test('mencionar el rol del bot (el que Discord crea al invitarlo) cuenta como me
   await tick();
   assert.strictEqual(h.chats.length, 1, 'el rol de otro bot no cuenta');
   assert.strictEqual(h.chats[0].texto, '@grok hola', 'sin la mención del rol');
+  // Con el rol, el Gateway llega sin texto ni adjuntos: el bot lee el mensaje por REST y baja solo las imágenes.
+  g.h.onDispatch('MESSAGE_CREATE', { id: 'rol-img', channel_id: CANAL, guild_id: 'g', mentions: [], mention_roles: ['555'], content: '', attachments: [], author: { id: OWNER, username: 'dueño' } });
+  await until(() => h.chats.length === 2);
+  assert.strictEqual(h.chats[1].texto, '@codex traduce esta imagen');
+  assert.deepStrictEqual(h.chats[1].adjuntos.map(a => [a.name, a.type, a.data.toString()]), [['foto.png', 'image/png', 'PNG!']]);
 });
 
 test('sin usuarios autorizados el bot dice el id (una vez) y no obedece', async () => {
@@ -342,7 +349,7 @@ test('API: guardar, ver sin token, llave de agente sin acceso y un mensaje de Di
   let handlers = null;
   discordBots.usarTransporte({
     gateway: (token, h) => ({ state: { estado: 'conectado', usuario: { id: APP, nombre: 'bot' } }, start() { handlers = h; h.onDispatch('READY', { user: { id: APP, username: 'bot' } }); return this; }, stop() {} }),
-    rest: () => ({ send: async (c, m, files) => { sent.push({ ...m, files }); return {}; }, edit: async () => ({}), typing: async () => null, interaction: async () => null }),
+    rest: () => ({ send: async (c, m, files) => { sent.push({ ...m, files }); return {}; }, descargar: async () => Buffer.from('PNG!'), edit: async () => ({}), typing: async () => null, interaction: async () => null }),
   });
   assert.strictEqual((await api('/api/oficinas', { method: 'POST', body: JSON.stringify({ nombre: 'Discordia' }) })).status, 201);
   const bad = await api('/api/oficinas/discordia/discord', { method: 'PUT', body: JSON.stringify({ token: 'nope' }) });
@@ -372,5 +379,9 @@ test('API: guardar, ver sin token, llave de agente sin acceso y un mensaje de Di
   await until(() => sent.length >= 2, 15000);
   assert.deepStrictEqual(sent[1].files?.map(f => [f.name, f.type, f.data.length > 0]), [['dibujo.png', 'image/png', true]]);
   assert.ok(!fs.readFileSync(path.join(home, 'oficinas', 'discordia', 'chat', 'mensajes.jsonl'), 'utf8').includes('"data"'));
+  // Una imagen que manda el usuario: la IA la tiene en adjuntos/ de su cajón y el prompt se lo dice.
+  handlers.onDispatch('MESSAGE_CREATE', { id: 'm3', channel_id: CANAL, guild_id: 'g', mentions: [{ id: APP }], content: `<@${APP}> @grok traduce`, attachments: [{ filename: 'foto.png', content_type: 'image/png', size: 4, url: 'https://cdn.discordapp.com/a/foto.png' }], author: { id: OWNER, username: 'dueño' } });
+  await until(() => sent.length >= 3, 15000);
+  assert.ok(sent[2].content.includes('adjuntos/1-foto.png'), sent[2].content);
   assert.strictEqual((await api('/api/oficinas/discordia/discord', { method: 'DELETE' })).status, 200);
 });

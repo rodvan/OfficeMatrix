@@ -2273,6 +2273,7 @@
   "ui.dc.noUsers": "nadie autorizado todavía: menciona al bot para saber tu ID",
   "discord.setup": "¡Hola! Soy el bot de {office} en OfficeMatrix. Tu ID de Discord es {id}. Para hablar conmigo, el dueño lo pega en OfficeMatrix → ⚙ {office} → Discord → Usuarios autorizados.",
   "discord.help": "**{office}** · mencióname y escribe tu mensaje. Con @nombre eliges una IA (p. ej. @grok, @claude); sin él contesta el anfitrión. `propuestas` muestra las propuestas editoriales pendientes.",
+  "discord.lookImage": "Mira la imagen adjunta.",
   "discord.helpShip": "**Nave** · `estado` muestra todas las oficinas. `viralhunt: tu pregunta` le pregunta a esa oficina (solo a las que comparten con la Nave). `@claude …` habla con una IA de la Nave.",
   "discord.noStatus": "No hay estado disponible.",
   "discord.shipBlocked": "{office} no comparte con la Nave. Pregúntale a su propio bot.",

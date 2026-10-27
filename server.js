@@ -62,7 +62,7 @@ const officeChat = createOfficeChat(oficinas); // chat de oficina, aparte de las
 const discordBots = createDiscord({
   oficinas, EDIFICIO, t: (k, v) => i18n.t(k, v),
   deps: {
-    chat: (office, texto, { autor } = {}) => runOfficeChat(office, texto, { autor, sinArchivos: true, anfitrionDefecto: true, conImagenes: true }),
+    chat: (office, texto, { autor, adjuntos } = {}) => runOfficeChat(office, texto, { autor, adjuntos, sinArchivos: true, anfitrionDefecto: true, conImagenes: true }),
     aprobar: (office, pid, input) => aprobarPropuesta(office, pid, input),
     rechazar: (office, pid, input) => rechazarPropuesta(office, pid, input),
     propuestas: office => (editorial.regla(office) ? editorial.galeria(office, {}) : []),
@@ -543,7 +543,7 @@ async function runChatBot(office, quien, mensaje, history) {
   return { texto, fallo: null };
 }
 
-function runChatCli(office, quien, mensaje, history, { sinArchivos = false, conImagenes = false } = {}) {
+function runChatCli(office, quien, mensaje, history, { sinArchivos = false, conImagenes = false, adjuntos = [] } = {}) {
   const agent = configFor(office).agents.find(a => a.id === quien.id && !a.bot);
   if (!agent) return Promise.resolve({ texto: '', fallo: chatFailure(i18n.t('server.chat.empty', { name: quien.nombre })) });
   const prompt = chatPrompt({
@@ -552,12 +552,21 @@ function runChatCli(office, quien, mensaje, history, { sinArchivos = false, conI
     memoria: memoryExcerpt(oficinas.dirs(office).memoria),
     mensaje,
     imagenes: conImagenes,
+    adjuntos: adjuntos.map((a, i) => `adjuntos/${i + 1}-${a.name}`),
   });
   const desde = Date.now() - 1000;
   const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), 'om-chat-'));
   fs.writeFileSync(path.join(sandbox, 'chat-prompt.md'), prompt);
+  // Las imágenes que mandó el usuario van en adjuntos/ (no en la raíz: allí se buscan las que genera la IA).
+  const rutasAdjuntos = adjuntos.map((a, i) => `adjuntos/${i + 1}-${a.name}`);
+  if (adjuntos.length) {
+    fs.mkdirSync(path.join(sandbox, 'adjuntos'));
+    adjuntos.forEach((a, i) => fs.writeFileSync(path.join(sandbox, rutasAdjuntos[i]), a.data));
+  }
   const base = Array.isArray(agent.chatArgs) ? { ...agent, args: agent.chatArgs } : agent;
   const args = readOnlyArgs(agent.stream, modelos.argsFor(base, modelos.pick(agent)), { sinArchivos }).map(a => String(a).replaceAll('{prompt}', CHAT_ARGV));
+  // Codex ve las imágenes con --image (justo tras «exec»: el siguiente --flag cierra la lista).
+  if (rutasAdjuntos.length && agent.stream === 'codex' && args[0] === 'exec') args.splice(1, 0, `--image=${rutasAdjuntos.join(',')}`);
   const timeoutMs = CHAT_CLI_MS;
   return new Promise(resolve => {
     let env = { ...process.env };
@@ -601,7 +610,7 @@ function runChatCli(office, quien, mensaje, history, { sinArchivos = false, conI
   });
 }
 
-async function runOfficeChat(office, texto, { autor = null, sinArchivos = false, anfitrionDefecto = false, conImagenes = false } = {}) {
+async function runOfficeChat(office, texto, { autor = null, sinArchivos = false, anfitrionDefecto = false, conImagenes = false, adjuntos = [] } = {}) {
   if (chatBusy.has(office)) { const err = new Error(i18n.t('chat.err.busy')); err.status = 409; throw err; }
   chatBusy.add(office);
   try {
@@ -612,7 +621,7 @@ async function runOfficeChat(office, texto, { autor = null, sinArchivos = false,
     // Desde Discord, sin anfitrión elegido contesta Claude (o la primera IA): un "hola" no debe quedarse sin respuesta.
     const porDefecto = anfitrionDefecto ? (members.find(m => m.tipo === 'cli' && m.id === 'claude') || members.find(m => m.tipo === 'cli')) : null;
     const route = recipients(clean, members, officeChat.readSettings(office).anfitrion || porDefecto?.id);
-    const userMsg = officeChat.append(office, { autor: { tipo: 'owner', id: 'owner', nombre: autor || 'You' }, texto: clean, menciones: route.quienes.map(q => q.mencion) });
+    const userMsg = officeChat.append(office, { autor: { tipo: 'owner', id: 'owner', nombre: autor || 'You' }, texto: adjuntos.length ? `${clean}\n📎 ${adjuntos.map(a => a.name).join(', ')}` : clean, menciones: route.quienes.map(q => q.mencion) });
     broadcast({ type: 'office-chat', oficina: office, fase: 'mensaje', mensaje: userMsg });
     const produced = [userMsg];
     if (!route.quienes.length) {
@@ -627,7 +636,7 @@ async function runOfficeChat(office, texto, { autor = null, sinArchivos = false,
     for (const quien of route.quienes) {
       broadcast({ type: 'office-chat', oficina: office, fase: 'hablando', quien: { sceneId: quien.sceneId, nombre: quien.nombre } });
       const history = officeChat.list(office, secrets);
-      const result = quien.tipo === 'bot' ? await runChatBot(office, quien, clean, history) : await runChatCli(office, quien, clean, history, { sinArchivos, conImagenes });
+      const result = quien.tipo === 'bot' ? await runChatBot(office, quien, clean, history) : await runChatCli(office, quien, clean, history, { sinArchivos, conImagenes, adjuntos });
       const msg = officeChat.append(office, {
         autor: { tipo: quien.tipo, id: quien.id, nombre: quien.nombre, avatar: quien.avatar, puesto: quien.puesto, sceneId: quien.sceneId },
         texto: redact(result.texto || (result.imagenes?.length ? `🖼️ ${result.imagenes.map(i => i.name).join(', ')}` : ''), secrets),
