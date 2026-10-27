@@ -169,6 +169,19 @@ test('cada bot habla solo con su oficina, y solo con usuarios autorizados', asyn
   assert.strictEqual(h.chats.length, 3);
 });
 
+test('mencionar el rol del bot (el que Discord crea al invitarlo) cuenta como mención; otro rol no', async () => {
+  const h = harness();
+  h.dc.guardar('viralhunt', { token: TOKEN, usuarios: [OWNER] });
+  const g = h.gws[TOKEN];
+  g.h.onDispatch('GUILD_CREATE', { id: 'g', roles: [{ id: '555', tags: { bot_id: APP } }, { id: '666', tags: { bot_id: '1' } }] });
+  g.h.onDispatch('MESSAGE_CREATE', { id: 'r1', channel_id: CANAL, guild_id: 'g', mentions: [], mention_roles: ['666'], content: '<@&666> hola', author: { id: OWNER, username: 'dueño' } });
+  g.h.onDispatch('MESSAGE_CREATE', { id: 'r2', channel_id: CANAL, guild_id: 'g', mentions: [], mention_roles: ['555'], content: '<@&555> @grok hola', author: { id: OWNER, username: 'dueño' } });
+  await until(() => h.chats.length === 1);
+  await tick();
+  assert.strictEqual(h.chats.length, 1, 'el rol de otro bot no cuenta');
+  assert.strictEqual(h.chats[0].texto, '@grok hola', 'sin la mención del rol');
+});
+
 test('sin usuarios autorizados el bot dice el id (una vez) y no obedece', async () => {
   const h = harness();
   h.dc.guardar('viralhunt', { token: TOKEN });
