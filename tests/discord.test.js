@@ -20,7 +20,7 @@ process.env.OFFICEMATRIX_LANG = 'en';
 
 const discord = require('../lib/discord');
 const { createDiscord, normalizar } = require('../lib/discord-oficinas');
-const { readOnlyArgs } = require('../lib/chat-oficina');
+const { readOnlyArgs, carpetasDeImagenes, imagenesDelTurno } = require('../lib/chat-oficina');
 
 const APP = '123456789012345678';
 const TOKEN = `${Buffer.from(APP).toString('base64')}.GabcDE.${'x'.repeat(27)}`;
@@ -97,6 +97,25 @@ test('chat desde Discord: Claude sin herramientas de archivos', () => {
   for (const tool of ['Write', 'Bash', 'Read', 'Glob', 'Grep', 'WebFetch']) assert.ok(deny.split(',').includes(tool), tool);
   assert.ok(args.includes('plan'));
   assert.ok(!readOnlyArgs('claude', ['-p', 'x']).at(-1).includes('Read'), 'el chat del panel no cambia');
+});
+
+test('imágenes del turno: la carpeta de la conversación de Antigravity y de Codex, solo las nuevas', () => {
+  const casa = fs.mkdtempSync(path.join(os.tmpdir(), 'om-img-'));
+  const id = '01a17b03-a014-7021-9c24-a5c4b88d7639';
+  assert.deepStrictEqual(carpetasDeImagenes('agy', `{"conversation_id":"${id}"}`, {}, casa), [path.join(casa, '.gemini', 'antigravity-cli', 'brain', id)]);
+  const [dir] = carpetasDeImagenes('codex', `{"type":"thread.started","thread_id":"${id}"}`, {}, casa);
+  assert.strictEqual(dir, path.join(casa, '.codex', 'generated_images', id));
+  assert.deepStrictEqual(carpetasDeImagenes('codex', `"thread_id":"${id}"`, { CODEX_HOME: '~/.codex-2' }, casa), [path.join(casa, '.codex-2', 'generated_images', id)]);
+  assert.deepStrictEqual(carpetasDeImagenes('claude', `"thread_id":"${id}"`, {}, casa), []);
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'vieja.png'), 'x');
+  const antes = Date.now() + 5000;
+  fs.utimesSync(path.join(dir, 'vieja.png'), new Date(antes - 60000), new Date(antes - 60000));
+  fs.writeFileSync(path.join(dir, 'nueva.png'), 'y');
+  fs.writeFileSync(path.join(dir, 'notas.txt'), 'z');
+  fs.utimesSync(path.join(dir, 'nueva.png'), new Date(antes + 1000), new Date(antes + 1000));
+  assert.deepStrictEqual(imagenesDelTurno([dir], antes).map(i => [i.name, i.type]), [['nueva.png', 'image/png']]);
+  fs.rmSync(casa, { recursive: true, force: true });
 });
 
 // ---------- lib/discord-oficinas.js con Gateway y REST falsos ----------

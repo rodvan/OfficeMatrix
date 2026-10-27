@@ -31,7 +31,7 @@ const { createManifests, controlDir } = require('./lib/manifiestos');
 const acceso = require('./lib/acceso-local');
 const hoy = require('./lib/hoy');
 const { createBots, MAX_BODY: BOT_MAX_BODY } = require('./lib/bots');
-const { createOfficeChat, redact, recipients, draftMission, chatPrompt, memoryExcerpt, readOnlyArgs, slug: chatSlug, imagenesDelTurno, carpetasAgy } = require('./lib/chat-oficina');
+const { createOfficeChat, redact, recipients, draftMission, chatPrompt, memoryExcerpt, readOnlyArgs, slug: chatSlug, imagenesDelTurno, carpetasDeImagenes } = require('./lib/chat-oficina');
 const editorialLib = require('./lib/editorial');
 const { createViralHunt } = require('./lib/viralhunt');
 const rutinasLib = require('./lib/rutinas');
@@ -576,7 +576,7 @@ function runChatCli(office, quien, mensaje, history, { sinArchivos = false, conI
       settled = true;
       clearTimeout(timer);
       // Desde Discord: las imágenes que generó en este turno viajan con la respuesta (se leen antes de borrar el cajón).
-      const imagenes = conImagenes ? imagenesDelTurno([sandbox, ...(agent.stream === 'agy' ? carpetasAgy(stdout) : [])], desde) : [];
+      const imagenes = conImagenes ? imagenesDelTurno([sandbox, ...carpetasDeImagenes(agent.stream, stdout, { ...process.env, ...(agent.env || {}) })], desde) : [];
       fs.rmSync(sandbox, { recursive: true, force: true });
       parser.end();
       const texto = redact(parser.finalText(), secretsOf(office));

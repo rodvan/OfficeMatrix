@@ -29,7 +29,7 @@ Your Discord server
 - **Read-only.** A Discord message never edits files. Office chat turns are already read-only. From Discord, Claude also
   loses its tools to read files and fetch pages, so nobody in a channel can ask it to read a path on your disk. Other CLIs
   have no such switch, which is one more reason only authorized users can talk to the bot.
-- **Images.** An AI can only generate images with its own tool. OfficeMatrix uploads the ones that appear in that turn (in its temporary folder or, with Antigravity, in that conversation's folder) and does not keep them in the chat.
+- **Images.** An AI can only generate images with its own tool. OfficeMatrix uploads the ones that appear in that turn (in its temporary folder or in that conversation's folder: `~/.gemini/antigravity-cli/brain/<id>` for Antigravity and `~/.codex/generated_images/<id>` for Codex) and does not keep them in the chat.
 - **The token stays on your PC.** It lives in `discord.secreto.json` inside the office folder, outside git. The panel never
   shows it again, and the chat masks it if someone pastes it. **Never paste it in a chat.**
 - **Sensitive data.** If an office handles data that must only reach the AIs you chose, do not connect it to Discord, and
@@ -58,7 +58,7 @@ Repeat it for each office, with one Discord application each. For the Ship, sele
 | --- | --- |
 | `@bot @grok find trends about Artemis` | That AI of the office answers, signed with its name |
 | `@bot what do you think?` (no `@name`) | The office's **chat host** answers (⚙ → Chat host); if none is set, Claude or the first AI |
-| `@bot @gemini draw an astronaut on the moon` | If the AI generates an image, it reaches Discord with its reply (up to 4 images and 8 MB). Today Gemini (Antigravity) does it |
+| `@bot @gemini draw an astronaut on the moon` | If the AI generates an image, it reaches Discord with its reply (up to 4 images and 8 MB). Gemini (Antigravity) and Codex do it |
 | `@bot proposals` | The pending editorial proposals, as cards with buttons |
 | `@bot help` | A short reminder |
 | Ship: `@ship status` | Per office: missions running, pending proposals and its bot's state |
