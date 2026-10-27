@@ -17,6 +17,7 @@ fs.writeFileSync(path.join(home, 'agents.json'), JSON.stringify({
   agents: [
     { id: 'cli', name: 'Grok', role: 'Lead', color: '#c062d6', avatar: 'capitana', cmd: 'node', stream: 'text', args: [fake, 'cli', 'chat', 'text', '{prompt}'] },
     { id: 'sj', name: 'Stream', role: 'Audit', color: '#d0704f', avatar: 'sabia', cmd: 'node', stream: 'claude', args: [fake, 'sj', 'chat', 'claude', '{prompt}'] },
+    { id: 'kimi', name: 'Kimi', role: 'Dev', color: '#3b6cff', cmd: 'node', stream: 'kimi', args: [fake, 'kimi', 'chat', 'text', '{prompt}'] },
   ],
   maxRounds: 1, minScore: 9, turnTimeoutMinutes: 0.05,
 }));
@@ -103,6 +104,11 @@ test('menciones: cero sin anfitrión, una, dos en orden, y el anfitrión si no h
   assert.match(wizard.body.bloques.instruccion, /tipo is ping/);
   assert.match(wizard.body.bloques.json, /"tipo": "chat"/);
   assert.ok(!JSON.stringify(wizard.body).includes(KEY));
+
+  // Kimi con -p aprueba sola sus herramientas: no entra al chat, que es de solo lectura.
+  const sala = await api('/api/oficinas/sala/chat');
+  assert.ok(!sala.body.miembros.some(m => m.id === 'kimi'));
+  assert.ok(sala.body.miembros.some(m => m.id === 'sj'));
 
   const none = await api('/api/oficinas/sala/chat', { method: 'POST', body: JSON.stringify({ texto: 'hola sin mencion' }) });
   assert.strictEqual(none.status, 200);

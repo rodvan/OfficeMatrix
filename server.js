@@ -501,7 +501,8 @@ async function runBotTurn(chatId, agent, { timeoutMin, round, onEvent, briefFile
 // archivo que cree ahí no toca el proyecto. Un bot contesta por su webhook con tipo "chat".
 function chatMembers(office) {
   const cfg = configFor(office);
-  const clis = cfg.agents.filter(a => !a.bot).map(a => ({
+  // Kimi con -p aprueba sola sus herramientas y no tiene modo de solo lectura: fuera del chat salvo que traiga chatArgs propios.
+  const clis = cfg.agents.filter(a => !a.bot && (a.stream !== 'kimi' || Array.isArray(a.chatArgs))).map(a => ({
     tipo: 'cli', id: a.id, sceneId: a.id, nombre: a.name, puesto: a.role || '', avatar: a.avatar || '', mencion: chatSlug(a.name), color: a.color,
   }));
   const botMembers = bots.list(office).map(b => ({

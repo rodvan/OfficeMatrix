@@ -745,8 +745,9 @@ svg.ch .cell-v.strong { fill: #fff; }
 .msg, .objection, .dossier, .handoff-current, .handoff-turn { border-radius: 4px; }
 .telemetry .tm-cell .v { font-size: 12px; }
 
-/* Compositor compacto en una misión abierta: se expande al escribir o al tocar un modo */
-.composer.compact .tpl-strip, .composer.compact .wf-explain, .composer.compact .wf-head, .composer.compact .cycle-config { display: none !important; }
+/* Compositor compacto en una misión abierta: se expande al escribir o al tocar un modo. La configuración del ciclo
+   (equipo, rondas) sigue a la vista, plegada: para preguntarle a una sola IA hay que poder quitar al resto. */
+.composer.compact .tpl-strip, .composer.compact .wf-explain, .composer.compact .wf-head { display: none !important; }
 .composer.compact .wf-card { padding: 5px 10px; }
 .composer.compact .wf-tx > span, .composer.compact .wf-tx small { display: none; }
 .composer.compact .wf-ic { font-size: 15px; }

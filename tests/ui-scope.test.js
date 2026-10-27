@@ -46,7 +46,10 @@ test('S1-UI: el editor recuerda la época y se cierran todos los diálogos al ca
   assert.match(css, /\.deck\.nave \.stations \{ grid-template-columns: repeat\(auto-fit, minmax\(100px, 1fr\)\); \}/);
   assert.match(css, /\.ops\s*\{\s*overflow-y:\s*auto;\s*\}/);
   assert.match(css, /\.board\s*\{\s*min-height:\s*380px;\s*\}/);
-  assert.match(css, /\.composer\.compact[^{}]*\.cycle-config/);
+  // En una misión abierta el compositor va compacto, pero la configuración del ciclo (equipo, rondas) sigue a la vista:
+  // así se le pregunta a una sola IA.
+  assert.match(css, /\.composer\.compact \.wf-head \{ display: none/);
+  assert.doesNotMatch(css, /\.composer\.compact[^{}]*\.cycle-config/);
 });
 test('S1-UI: una ficha o un traspaso que llegan tarde no se abren ni se guardan en la oficina nueva', async () => {
   const source = fs.readFileSync(require.resolve('../public/app'), 'utf8');
