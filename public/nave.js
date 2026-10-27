@@ -439,7 +439,9 @@
     // En la oficina, el reparto por defecto es la tripulación con ropa de oficina; la ficha puede elegir cualquier
     // personaje (Escenas.reparto). Si un empleado lleva el del operador o la sabia, ese personal no sale.
     const cast = SCENE.fixed ? {} : Escenas.reparto(list.map(s => ({ id: s.id, avatar: s.avatar })));
-    staff(Object.values(cast));
+    // En la nave, una IA sin personaje propio (Kimi, una CLI nueva) lleva el del Operador: entonces el personal fijo cede su
+    // sitio, como con un empleado, y no salen dos Operadores iguales.
+    staff(SCENE.fixed ? list.map(avatarOf) : Object.values(cast));
     // Etiqueta corta en la oficina: el nombre de pila (o el completo si dos lo comparten). Modelo y puesto, en el tooltip.
     const first = s => String(s.name || s.id).split(/\s+/)[0];
     const shared = new Set(list.map(first).filter((n, i, arr) => arr.indexOf(n) !== i));

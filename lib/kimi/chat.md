@@ -1,6 +1,6 @@
 ---
 name: officematrix-chat
-description: OfficeMatrix office chat turn, read-only (read, search and web; no writes, no shell)
+description: "OfficeMatrix office chat turn, read-only (read, search and web, no writes, no shell)"
 tools: Read, Grep, Glob, ReadMediaFile, WebSearch, FetchURL
 ---
 

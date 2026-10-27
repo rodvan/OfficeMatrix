@@ -115,7 +115,10 @@ test('menciones: cero sin anfitrión, una, dos en orden, y el anfitrión si no h
   assert.match(kimiArgs.at(-1), /kimi[\\/]chat\.md$/);
   assert.match(readOnlyArgs('kimi', ['-p', '{prompt}'], { sinArchivos: true }).at(-1), /kimi[\\/]chat-sin-archivos\.md$/);
   for (const f of ['chat.md', 'chat-sin-archivos.md']) {
-    const tools = fs.readFileSync(path.join(__dirname, '..', 'lib', 'kimi', f), 'utf8').match(/^tools: (.*)$/m)[1].split(',').map(s => s.trim());
+    const md = fs.readFileSync(path.join(__dirname, '..', 'lib', 'kimi', f), 'utf8');
+    // Kimi lee el frontmatter como YAML: un «: » sin comillas en un valor lo rompe y el turno falla.
+    for (const line of md.split('---')[1].split(/\r?\n/).filter(Boolean)) assert.ok(/^\w+: ("[^"]*"|[^:]*)$/.test(line), `${f}: ${line}`);
+    const tools = md.match(/^tools: (.*)$/m)[1].split(',').map(s => s.trim());
     assert.ok(!tools.some(t => ['Write', 'Edit', 'Bash', 'Agent', 'AgentSwarm', 'CronCreate'].includes(t)), `${f} solo lee: ${tools}`);
   }
 

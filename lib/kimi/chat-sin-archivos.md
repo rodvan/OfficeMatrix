@@ -1,6 +1,6 @@
 ---
 name: officematrix-chat-web
-description: OfficeMatrix chat turn from Discord: no file or shell tools, only web search
+description: "OfficeMatrix chat turn from Discord, with no file or shell tools, only web search"
 tools: WebSearch
 ---
 
