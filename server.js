@@ -31,7 +31,7 @@ const { createManifests, controlDir } = require('./lib/manifiestos');
 const acceso = require('./lib/acceso-local');
 const hoy = require('./lib/hoy');
 const { createBots, MAX_BODY: BOT_MAX_BODY } = require('./lib/bots');
-const { createOfficeChat, redact, recipients, draftMission, chatPrompt, memoryExcerpt, readOnlyArgs, slug: chatSlug } = require('./lib/chat-oficina');
+const { createOfficeChat, redact, recipients, draftMission, chatPrompt, memoryExcerpt, readOnlyArgs, slug: chatSlug, imagenesDelTurno, carpetasAgy } = require('./lib/chat-oficina');
 const editorialLib = require('./lib/editorial');
 const { createViralHunt } = require('./lib/viralhunt');
 const rutinasLib = require('./lib/rutinas');
@@ -62,7 +62,7 @@ const officeChat = createOfficeChat(oficinas); // chat de oficina, aparte de las
 const discordBots = createDiscord({
   oficinas, EDIFICIO, t: (k, v) => i18n.t(k, v),
   deps: {
-    chat: (office, texto, { autor } = {}) => runOfficeChat(office, texto, { autor, sinArchivos: true, anfitrionDefecto: true }),
+    chat: (office, texto, { autor } = {}) => runOfficeChat(office, texto, { autor, sinArchivos: true, anfitrionDefecto: true, conImagenes: true }),
     aprobar: (office, pid, input) => aprobarPropuesta(office, pid, input),
     rechazar: (office, pid, input) => rechazarPropuesta(office, pid, input),
     propuestas: office => (editorial.regla(office) ? editorial.galeria(office, {}) : []),
@@ -543,7 +543,7 @@ async function runChatBot(office, quien, mensaje, history) {
   return { texto, fallo: null };
 }
 
-function runChatCli(office, quien, mensaje, history, { sinArchivos = false } = {}) {
+function runChatCli(office, quien, mensaje, history, { sinArchivos = false, conImagenes = false } = {}) {
   const agent = configFor(office).agents.find(a => a.id === quien.id && !a.bot);
   if (!agent) return Promise.resolve({ texto: '', fallo: chatFailure(i18n.t('server.chat.empty', { name: quien.nombre })) });
   const prompt = chatPrompt({
@@ -551,7 +551,9 @@ function runChatCli(office, quien, mensaje, history, { sinArchivos = false } = {
     historial: history.slice(-8).map(m => ({ de: m.autor?.nombre || '?', texto: m.texto })),
     memoria: memoryExcerpt(oficinas.dirs(office).memoria),
     mensaje,
+    imagenes: conImagenes,
   });
+  const desde = Date.now() - 1000;
   const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), 'om-chat-'));
   fs.writeFileSync(path.join(sandbox, 'chat-prompt.md'), prompt);
   const base = Array.isArray(agent.chatArgs) ? { ...agent, args: agent.chatArgs } : agent;
@@ -573,15 +575,17 @@ function runChatCli(office, quien, mensaje, history, { sinArchivos = false } = {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
+      // Desde Discord: las imágenes que generó en este turno viajan con la respuesta (se leen antes de borrar el cajón).
+      const imagenes = conImagenes ? imagenesDelTurno([sandbox, ...(agent.stream === 'agy' ? carpetasAgy(stdout) : [])], desde) : [];
       fs.rmSync(sandbox, { recursive: true, force: true });
       parser.end();
       const texto = redact(parser.finalText(), secretsOf(office));
-      if (timedOut || code !== 0 || !texto) {
+      if (timedOut || code !== 0 || (!texto && !imagenes.length)) {
         const fallo = classifyFailure({ code: code || 1, stdout, stderr, report: texto, timedOut, timeoutMinutes: Math.round(timeoutMs / 6000) / 10 })
           || chatFailure(stderr || i18n.t('server.chat.empty', { name: quien.nombre }));
-        return resolve({ texto, fallo });
+        return resolve({ texto, fallo, imagenes });
       }
-      resolve({ texto, fallo: null });
+      resolve({ texto, fallo: null, imagenes });
     };
     const timer = setTimeout(() => { timedOut = true; stderr += '\n[OfficeMatrix] Tiempo agotado.'; killTree(proc); }, timeoutMs);
     proc.stdout.on('data', c => {
@@ -597,7 +601,7 @@ function runChatCli(office, quien, mensaje, history, { sinArchivos = false } = {
   });
 }
 
-async function runOfficeChat(office, texto, { autor = null, sinArchivos = false, anfitrionDefecto = false } = {}) {
+async function runOfficeChat(office, texto, { autor = null, sinArchivos = false, anfitrionDefecto = false, conImagenes = false } = {}) {
   if (chatBusy.has(office)) { const err = new Error(i18n.t('chat.err.busy')); err.status = 409; throw err; }
   chatBusy.add(office);
   try {
@@ -623,13 +627,14 @@ async function runOfficeChat(office, texto, { autor = null, sinArchivos = false,
     for (const quien of route.quienes) {
       broadcast({ type: 'office-chat', oficina: office, fase: 'hablando', quien: { sceneId: quien.sceneId, nombre: quien.nombre } });
       const history = officeChat.list(office, secrets);
-      const result = quien.tipo === 'bot' ? await runChatBot(office, quien, clean, history) : await runChatCli(office, quien, clean, history, { sinArchivos });
+      const result = quien.tipo === 'bot' ? await runChatBot(office, quien, clean, history) : await runChatCli(office, quien, clean, history, { sinArchivos, conImagenes });
       const msg = officeChat.append(office, {
         autor: { tipo: quien.tipo, id: quien.id, nombre: quien.nombre, avatar: quien.avatar, puesto: quien.puesto, sceneId: quien.sceneId },
-        texto: redact(result.texto || '', secrets),
+        texto: redact(result.texto || (result.imagenes?.length ? `🖼️ ${result.imagenes.map(i => i.name).join(', ')}` : ''), secrets),
         fallo: result.fallo,
       });
-      produced.push(msg);
+      // Las imágenes no se guardan en el chat: solo viajan en lo que se devuelve (a Discord).
+      produced.push(result.imagenes?.length ? { ...msg, imagenes: result.imagenes } : msg);
       broadcast({ type: 'office-chat', oficina: office, fase: 'mensaje', mensaje: msg });
       broadcast({ type: 'office-chat', oficina: office, fase: 'callado', quien: { sceneId: quien.sceneId } });
     }

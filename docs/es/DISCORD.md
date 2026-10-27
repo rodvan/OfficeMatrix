@@ -30,6 +30,7 @@ Tu servidor de Discord
   Desde Discord, además, Claude pierde las herramientas de leer archivos y abrir páginas, así que nadie en un canal puede
   pedirle leer una ruta de tu disco. Las otras CLIs no tienen ese interruptor, y es otra razón para que solo hablen los
   usuarios autorizados.
+- **Imágenes.** Una IA solo puede generar imágenes con su propia herramienta. OfficeMatrix sube las que aparecen en ese turno (en su cajón temporal o, con Antigravity, en la carpeta de esa conversación) y no las guarda en el chat.
 - **El token se queda en tu PC.** Vive en `discord.secreto.json`, dentro de la carpeta de la oficina y fuera de git. El
   panel no lo vuelve a mostrar, y el chat lo tapa si alguien lo pega. **Nunca lo pegues en un chat.**
 - **Datos sensibles.** Si una oficina maneja datos que solo deben ir a las IAs que elegiste, no la conectes a Discord y
@@ -58,6 +59,7 @@ Repítelo en cada oficina, con una aplicación de Discord por oficina. Para la N
 | --- | --- |
 | `@bot @grok busca tendencias de Artemis` | Contesta esa IA de la oficina, firmado con su nombre |
 | `@bot ¿qué opinan?` (sin `@nombre`) | Contesta el **anfitrión del chat** de la oficina (⚙ → Anfitrión del chat); si no hay, Claude o la primera IA |
+| `@bot @gemini dibuja un astronauta en la luna` | Si la IA genera una imagen, llega a Discord con su respuesta (hasta 4 imágenes y 8 MB). Hoy lo hace Gemini (Antigravity) |
 | `@bot propuestas` | Las propuestas editoriales pendientes, como tarjetas con botones |
 | `@bot ayuda` | Un recordatorio corto |
 | Nave: `@nave estado` | Por oficina: misiones en curso, propuestas pendientes y el estado de su bot |

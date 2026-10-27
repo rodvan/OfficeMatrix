@@ -310,7 +310,7 @@ test('API: guardar, ver sin token, llave de agente sin acceso y un mensaje de Di
   let handlers = null;
   discordBots.usarTransporte({
     gateway: (token, h) => ({ state: { estado: 'conectado', usuario: { id: APP, nombre: 'bot' } }, start() { handlers = h; h.onDispatch('READY', { user: { id: APP, username: 'bot' } }); return this; }, stop() {} }),
-    rest: () => ({ send: async (c, m) => { sent.push(m); return {}; }, edit: async () => ({}), typing: async () => null, interaction: async () => null }),
+    rest: () => ({ send: async (c, m, files) => { sent.push({ ...m, files }); return {}; }, edit: async () => ({}), typing: async () => null, interaction: async () => null }),
   });
   assert.strictEqual((await api('/api/oficinas', { method: 'POST', body: JSON.stringify({ nombre: 'Discordia' }) })).status, 201);
   const bad = await api('/api/oficinas/discordia/discord', { method: 'PUT', body: JSON.stringify({ token: 'nope' }) });
@@ -335,5 +335,10 @@ test('API: guardar, ver sin token, llave de agente sin acceso y un mensaje de Di
   assert.ok(rows.some(m => m.autor?.nombre === 'Discord · dueño' && m.texto === '@grok hola equipo'), 'queda en el chat de la oficina');
   const raw = fs.readFileSync(path.join(home, 'oficinas', 'discordia', 'chat', 'mensajes.jsonl'), 'utf8');
   assert.ok(!raw.includes(TOKEN));
+  // La IA genera una imagen en su cajón: llega a Discord como archivo y no se guarda en el chat.
+  handlers.onDispatch('MESSAGE_CREATE', { id: 'm2', channel_id: CANAL, guild_id: 'g', mentions: [{ id: APP }], content: `<@${APP}> @grok imagen-de-prueba`, author: { id: OWNER, username: 'dueño' } });
+  await until(() => sent.length >= 2, 15000);
+  assert.deepStrictEqual(sent[1].files?.map(f => [f.name, f.type, f.data.length > 0]), [['dibujo.png', 'image/png', true]]);
+  assert.ok(!fs.readFileSync(path.join(home, 'oficinas', 'discordia', 'chat', 'mensajes.jsonl'), 'utf8').includes('"data"'));
   assert.strictEqual((await api('/api/oficinas/discordia/discord', { method: 'DELETE' })).status, 200);
 });

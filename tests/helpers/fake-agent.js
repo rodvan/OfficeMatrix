@@ -33,6 +33,8 @@ if (script === 'chat') {
   fs.writeFileSync('intento-de-escritura.txt', 'no debe salir del cajon');
   const prompt = fs.existsSync('chat-prompt.md') ? fs.readFileSync('chat-prompt.md', 'utf8') : '';
   const flat = prompt.replace(/\s+/g, ' ');
+  // Una IA que genera una imagen (Discord la sube): un PNG de 1x1 en el cajón.
+  if (flat.includes('imagen-de-prueba')) fs.writeFileSync('dibujo.png', Buffer.from('89504e470d0a1a0a0000000d4948445200000001000000010806000000', 'hex'));
   // La cabeza trae la memoria; la cola, la respuesta anterior. Un corte solo al principio
   // esconde lo que el compañero acaba de decir cuando el historial ya es largo.
   const head = flat.slice(0, 320);
