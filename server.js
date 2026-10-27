@@ -31,7 +31,7 @@ const { createManifests, controlDir } = require('./lib/manifiestos');
 const acceso = require('./lib/acceso-local');
 const hoy = require('./lib/hoy');
 const { createBots, MAX_BODY: BOT_MAX_BODY } = require('./lib/bots');
-const { createOfficeChat, redact, recipients, draftMission, chatPrompt, memoryExcerpt, readOnlyArgs, slug: chatSlug, imagenesDelTurno, carpetasDeImagenes } = require('./lib/chat-oficina');
+const { createOfficeChat, redact, recipients, draftMission, chatPrompt, memoryExcerpt, readOnlyArgs, entregaDelPrompt, slug: chatSlug, imagenesDelTurno, carpetasDeImagenes } = require('./lib/chat-oficina');
 const editorialLib = require('./lib/editorial');
 const { createViralHunt } = require('./lib/viralhunt');
 const rutinasLib = require('./lib/rutinas');
@@ -564,7 +564,7 @@ function runChatCli(office, quien, mensaje, history, { sinArchivos = false, conI
     adjuntos.forEach((a, i) => fs.writeFileSync(path.join(sandbox, rutasAdjuntos[i]), a.data));
   }
   const base = Array.isArray(agent.chatArgs) ? { ...agent, args: agent.chatArgs } : agent;
-  const args = readOnlyArgs(agent.stream, modelos.argsFor(base, modelos.pick(agent)), { sinArchivos }).map(a => String(a).replaceAll('{prompt}', CHAT_ARGV));
+  const { args, stdin } = entregaDelPrompt(agent.stream, readOnlyArgs(agent.stream, modelos.argsFor(base, modelos.pick(agent)), { sinArchivos }), { prompt, orden: CHAT_ARGV, sandbox, sinArchivos });
   // Codex ve las imágenes con --image (justo tras «exec»: el siguiente --flag cierra la lista).
   if (rutasAdjuntos.length && agent.stream === 'codex' && args[0] === 'exec') args.splice(1, 0, `--image=${rutasAdjuntos.join(',')}`);
   const timeoutMs = CHAT_CLI_MS;
@@ -576,7 +576,8 @@ function runChatCli(office, quien, mensaje, history, { sinArchivos = false, conI
     const proc = isWin && !native
       ? spawn([agent.cmd, ...args.map(quoteArg)].join(' '), { cwd: sandbox, env, shell: true, windowsHide: true })
       : spawn(agent.cmd, args, { cwd: sandbox, env, windowsHide: true });
-    proc.stdin.end();
+    proc.stdin.on('error', () => {}); // una CLI que no lee la entrada estándar puede cerrarla antes
+    proc.stdin.end(stdin || undefined);
     // Las CLIs reales hablan en stream-json: el globo y la respuesta salen del parser, no del JSON crudo.
     const parser = createStreamParser(agent.stream || 'text', { cwd: sandbox });
     let stdout = '', stderr = '', timedOut = false, settled = false;

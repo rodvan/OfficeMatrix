@@ -8,7 +8,7 @@ const path = require('path');
 const http = require('http');
 const crypto = require('crypto');
 const { spawnSync } = require('child_process');
-const { redact, recipients, readOnlyArgs } = require('../lib/chat-oficina');
+const { redact, recipients, readOnlyArgs, entregaDelPrompt } = require('../lib/chat-oficina');
 const { verifyStandard } = require('../lib/bots');
 
 const home = fs.mkdtempSync(path.join(os.tmpdir(), 'om-office-chat-'));
@@ -114,6 +114,22 @@ test('menciones: cero sin anfitrión, una, dos en orden, y el anfitrión si no h
   assert.strictEqual(kimiArgs.at(-2), '--agent-file');
   assert.match(kimiArgs.at(-1), /kimi[\\/]chat\.md$/);
   assert.match(readOnlyArgs('kimi', ['-p', '{prompt}'], { sinArchivos: true }).at(-1), /kimi[\\/]chat-sin-archivos\.md$/);
+  // Quien no puede leer archivos recibe el mensaje sin abrir chat-prompt.md: Claude desde Discord por la entrada estándar
+  // y Kimi dentro de la copia de su agente. El texto del usuario nunca va en la línea de órdenes.
+  const cajon = fs.mkdtempSync(path.join(os.tmpdir(), 'om-entrega-'));
+  const PROMPT = 'Reply to: hola $(rm -rf ~) "comillas"';
+  const cl = entregaDelPrompt('claude', readOnlyArgs('claude', ['-p', '{prompt}'], { sinArchivos: true }), { prompt: PROMPT, orden: 'LEE', sandbox: cajon, sinArchivos: true });
+  assert.strictEqual(cl.stdin, PROMPT);
+  assert.ok(!cl.args.some(a => a.includes('hola')) && !cl.args.includes('LEE'));
+  assert.deepStrictEqual(entregaDelPrompt('claude', ['-p', '{prompt}'], { prompt: PROMPT, orden: 'LEE', sandbox: cajon }), { args: ['-p', 'LEE'], stdin: '' });
+  const ki = entregaDelPrompt('kimi', readOnlyArgs('kimi', ['-p', '{prompt}'], { sinArchivos: true }), { prompt: PROMPT, orden: 'LEE', sandbox: cajon, sinArchivos: true });
+  const copia = ki.args[ki.args.indexOf('--agent-file') + 1];
+  assert.strictEqual(path.dirname(copia), cajon);
+  assert.ok(fs.readFileSync(copia, 'utf8').startsWith('---') && fs.readFileSync(copia, 'utf8').includes(PROMPT));
+  assert.match(fs.readFileSync(copia, 'utf8'), /^tools: WebSearch$/m);
+  assert.ok(!ki.args.some(a => a.includes('hola')) && ki.stdin === '');
+  fs.rmSync(cajon, { recursive: true, force: true });
+
   for (const f of ['chat.md', 'chat-sin-archivos.md']) {
     const md = fs.readFileSync(path.join(__dirname, '..', 'lib', 'kimi', f), 'utf8');
     // Kimi lee el frontmatter como YAML: un «: » sin comillas en un valor lo rompe y el turno falla.
