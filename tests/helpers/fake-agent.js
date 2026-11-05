@@ -29,6 +29,15 @@ if (/\.office\/relator\.md/.test(String(process.argv[5] || ''))) {
   return;
 }// Chat de oficina: el servidor lo lanza con el directorio de trabajo en un cajón temporal, no en la oficina.
 // Escribe aquí a propósito. Si el cajón es el bueno, ese archivo no aparece en la oficina.
+// Agente de ViralHunt (tests/viralhunt-agente.test.js): lee el encargo en chat-prompt.md y contesta el JSON del contrato,
+// con una copia corta por cada cuenta que el prompt enumera. Prosa alrededor a propósito: el parser debe quedarse con el JSON.
+if (script === 'vh') {
+  const prompt = fs.existsSync('chat-prompt.md') ? fs.readFileSync('chat-prompt.md', 'utf8') : '';
+  const ids = [...prompt.matchAll(/^(\d+): (\w+) «/gm)].map(m => m[1]);
+  const body = { text: `vh:${id}:ok`, fields: { body: 'ACORTADO', overrides: Object.fromEntries(ids.map(i => [i, { body: `corto ${i}` }])) }, warnings: [{ code: 'fix_source', text: 'sin fuente en las notas' }] };
+  process.stdout.write('Listo, aquí va.\n```json\n' + JSON.stringify(body) + '\n```\n');
+  process.exit(0);
+}
 if (script === 'chat') {
   fs.writeFileSync('intento-de-escritura.txt', 'no debe salir del cajon');
   const prompt = fs.existsSync('chat-prompt.md') ? fs.readFileSync('chat-prompt.md', 'utf8') : '';

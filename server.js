@@ -6,6 +6,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawn, execSync } = require('child_process');
+require('./lib/ruta-sistema').refrescar(); // ver CLIs instaladas después de abrir la terminal que nos lanzó
 
 const { createStreamParser, sayText } = require('./lib/streams');
 const { parseReport } = require('./lib/protocol');
@@ -31,9 +32,10 @@ const { createManifests, controlDir } = require('./lib/manifiestos');
 const acceso = require('./lib/acceso-local');
 const hoy = require('./lib/hoy');
 const { createBots, MAX_BODY: BOT_MAX_BODY } = require('./lib/bots');
-const { createOfficeChat, redact, recipients, draftMission, chatPrompt, memoryExcerpt, readOnlyArgs, entregaDelPrompt, slug: chatSlug, imagenesDelTurno, carpetasDeImagenes } = require('./lib/chat-oficina');
+const tunel = require('./lib/tunel');
+const { createOfficeChat, redact, recipients, draftMission, chatPrompt, parseBarrida, barridaPrompt, juezPrompt, memoryExcerpt, readOnlyArgs, entregaDelPrompt, slug: chatSlug, imagenesDelTurno, carpetasDeImagenes } = require('./lib/chat-oficina');
 const editorialLib = require('./lib/editorial');
-const { createViralHunt } = require('./lib/viralhunt');
+const { createViralHunt, taskPrompt: vhTaskPrompt, parseTaskReply: vhParseReply, replyUrlOk: vhReplyUrlOk } = require('./lib/viralhunt');
 const rutinasLib = require('./lib/rutinas');
 const cadenaLib = require('./lib/cadena');
 const cierreLib = require('./lib/cierre');
@@ -543,10 +545,11 @@ async function runChatBot(office, quien, mensaje, history) {
   return { texto, fallo: null };
 }
 
-function runChatCli(office, quien, mensaje, history, { sinArchivos = false, conImagenes = false, adjuntos = [] } = {}) {
+function runChatCli(office, quien, mensaje, history, { sinArchivos = false, conImagenes = false, adjuntos = [], prompt: promptOverride = null, timeoutMs: plazo = 0 } = {}) {
   const agent = configFor(office).agents.find(a => a.id === quien.id && !a.bot);
   if (!agent) return Promise.resolve({ texto: '', fallo: chatFailure(i18n.t('server.chat.empty', { name: quien.nombre })) });
-  const prompt = chatPrompt({
+  // prompt: un encargo de ViralHunt trae su propio prompt (runViralHuntTask); el chat normal arma el suyo
+  const prompt = promptOverride || chatPrompt({
     nombre: quien.nombre,
     historial: history.slice(-8).map(m => ({ de: m.autor?.nombre || '?', texto: m.texto })),
     memoria: memoryExcerpt(oficinas.dirs(office).memoria),
@@ -567,7 +570,7 @@ function runChatCli(office, quien, mensaje, history, { sinArchivos = false, conI
   const { args, stdin } = entregaDelPrompt(agent.stream, readOnlyArgs(agent.stream, modelos.argsFor(base, modelos.pick(agent)), { sinArchivos }), { prompt, orden: CHAT_ARGV, sandbox, sinArchivos });
   // Codex ve las imágenes con --image (justo tras «exec»: el siguiente --flag cierra la lista).
   if (rutasAdjuntos.length && agent.stream === 'codex' && args[0] === 'exec') args.splice(1, 0, `--image=${rutasAdjuntos.join(',')}`);
-  const timeoutMs = CHAT_CLI_MS;
+  const timeoutMs = plazo || CHAT_CLI_MS;
   return new Promise(resolve => {
     let env = { ...process.env };
     delete env.CLAUDECODE;
@@ -621,6 +624,8 @@ async function runOfficeChat(office, texto, { autor = null, sinArchivos = false,
     if (!clean) { const err = new Error(i18n.t('server.error.taskRequired')); err.status = 400; throw err; }
     // Desde Discord, sin anfitrión elegido contesta Claude (o la primera IA): un "hola" no debe quedarse sin respuesta.
     const porDefecto = anfitrionDefecto ? (members.find(m => m.tipo === 'cli' && m.id === 'claude') || members.find(m => m.tipo === 'cli')) : null;
+    const barrida = parseBarrida(clean, members.filter(m => m.tipo !== 'cli' || disponible(office, m.id)));
+    if (barrida) return await runBarrida(office, clean, barrida, { autor, sinArchivos });
     const route = recipients(clean, members, officeChat.readSettings(office).anfitrion || porDefecto?.id);
     const userMsg = officeChat.append(office, { autor: { tipo: 'owner', id: 'owner', nombre: autor || 'You' }, texto: adjuntos.length ? `${clean}\n📎 ${adjuntos.map(a => a.name).join(', ')}` : clean, menciones: route.quienes.map(q => q.mencion) });
     broadcast({ type: 'office-chat', oficina: office, fase: 'mensaje', mensaje: userMsg });
@@ -652,6 +657,77 @@ async function runOfficeChat(office, texto, { autor = null, sinArchivos = false,
   } finally {
     chatBusy.delete(office);
   }
+}
+
+// Una CLI entra en la barrida si está activada en agents.json y su comando existe en esta PC.
+function disponible(office, id) {
+  const a = configFor(office).agents.find(x => x.id === id && !x.bot);
+  return !!a && a.enabled !== false && isInstalled(a.cmd);
+}
+
+// Barrida de investigación (D88): los investigadores trabajan a la vez, cada uno en su cajón y sin ver a los demás; después
+// el juez cruza los informes. Todo queda en el chat de la oficina; desde Discord cada mensaje llega como respuesta.
+const BARRIDA_MS = Number(process.env.OFFICEMATRIX_BARRIDA_MS) || 300000;
+async function runBarrida(office, clean, { tema, juez, investigadores }, { autor = null, sinArchivos = false } = {}) {
+  const secrets = secretsOf(office);
+  const say = (m, extra = {}) => { const row = officeChat.append(office, m); broadcast({ type: 'office-chat', oficina: office, fase: 'mensaje', mensaje: row }); return { ...row, ...extra }; };
+  const system = texto => say({ autor: { tipo: 'system', id: 'system', nombre: 'OfficeMatrix' }, texto });
+  const produced = [say({ autor: { tipo: 'owner', id: 'owner', nombre: autor || 'You' }, texto: clean, menciones: investigadores.map(q => q.mencion) })];
+  if (!tema) { produced.push(system(i18n.t('chat.sweep.noTopic'))); return produced; }
+  if (!juez || !investigadores.length) { produced.push(system(i18n.t('chat.sweep.noTeam'))); return produced; }
+  produced.push(system(i18n.t('chat.sweep.start', { who: investigadores.map(q => q.nombre).join(', '), judge: juez.nombre })));
+  const autorDe = q => ({ tipo: q.tipo, id: q.id, nombre: q.nombre, avatar: q.avatar, puesto: q.puesto, sceneId: q.sceneId });
+  const informes = await Promise.all(investigadores.map(async q => {
+    broadcast({ type: 'office-chat', oficina: office, fase: 'hablando', quien: { sceneId: q.sceneId, nombre: q.nombre } });
+    const r = await runChatCli(office, q, '', [], { sinArchivos, prompt: barridaPrompt({ nombre: q.nombre, tema, otros: investigadores.length - 1 }), timeoutMs: BARRIDA_MS });
+    broadcast({ type: 'office-chat', oficina: office, fase: 'callado', quien: { sceneId: q.sceneId } });
+    return { q, texto: redact(r.texto || '', secrets), fallo: r.fallo };
+  }));
+  for (const i of informes) produced.push(say({ autor: autorDe(i.q), texto: i.texto ? `🔎 ${i.texto}` : '', fallo: i.texto ? null : i.fallo }));
+  if (!informes.some(i => i.texto)) { produced.push(system(i18n.t('chat.sweep.allFailed'))); return produced; }
+  broadcast({ type: 'office-chat', oficina: office, fase: 'hablando', quien: { sceneId: juez.sceneId, nombre: juez.nombre } });
+  const prompt = juezPrompt({ nombre: juez.nombre, tema, informes: informes.map(i => ({ nombre: i.q.nombre, texto: i.texto, fallo: i.texto ? null : (i.fallo?.label || 'failed') })) });
+  const r = await runChatCli(office, juez, '', [], { sinArchivos, prompt, timeoutMs: BARRIDA_MS });
+  broadcast({ type: 'office-chat', oficina: office, fase: 'callado', quien: { sceneId: juez.sceneId } });
+  const veredicto = redact(r.texto || '', secrets);
+  produced.push(say({ autor: { ...autorDe(juez), puesto: i18n.t('chat.sweep.judge') }, texto: veredicto ? `⚖️ ${veredicto}` : '', fallo: veredicto ? null : r.fallo }));
+  return produced;
+}
+
+// Un encargo de ViralHunt (type: "task", fase 6, 2026-10-28): lo contesta el anfitrión del chat de la oficina (o Claude, o la
+// primera CLI) con un prompt propio y en solo lectura; la respuesta se lee como JSON y se manda a reply_to. El pedido y la
+// respuesta quedan en el chat de la oficina, con las llaves tapadas, para que la persona vea qué se le pidió a su oficina.
+async function runViralHuntTask(office, msg) {
+  const secrets = secretsOf(office);
+  const clis = chatMembers(office).filter(m => m.tipo === 'cli');
+  const hostId = officeChat.readSettings(office).anfitrion;
+  const quien = clis.find(m => m.id === hostId) || clis.find(m => m.id === 'claude') || clis[0];
+  const taskId = msg.task?.id ?? '?';
+  const who = msg.task?.requested_by?.name || 'ViralHunt';
+  const reply = async body => {
+    try {
+      const r = await viralhunt.postReply(String(msg.reply_to || ''), body);
+      oficinas.bitacora(office, i18n.t('server.log.vhTaskAnswered', { id: taskId, status: r.status }));
+      return r;
+    } catch (err) { oficinas.bitacora(office, i18n.t('server.log.vhTaskReplyFailed', { id: taskId, why: err.message })); return null; }
+  };
+  const say = m => { const row = officeChat.append(office, m); broadcast({ type: 'office-chat', oficina: office, fase: 'mensaje', mensaje: row }); return row; };
+  say({ autor: { tipo: 'owner', id: 'viralhunt', nombre: `${who} · ViralHunt` }, texto: redact(i18n.t('server.chat.vhTask', { prompt: String(msg.task?.prompt || '').replace(/\s+/g, ' ').slice(0, 500) }), secrets) });
+  if (!quien) {
+    say({ autor: { tipo: 'system', id: 'system', nombre: 'OfficeMatrix' }, texto: i18n.t('chat.noHost') });
+    return reply({ error: i18n.t('viralhunt.err.noCli') });
+  }
+  broadcast({ type: 'office-chat', oficina: office, fase: 'hablando', quien: { sceneId: quien.sceneId, nombre: quien.nombre } });
+  const result = await runChatCli(office, quien, '', [], { prompt: vhTaskPrompt(msg, { nombre: quien.nombre }) });
+  broadcast({ type: 'office-chat', oficina: office, fase: 'callado', quien: { sceneId: quien.sceneId } });
+  const parsed = result.fallo ? null : vhParseReply(result.texto);
+  say({
+    autor: { tipo: quien.tipo, id: quien.id, nombre: quien.nombre, avatar: quien.avatar, puesto: quien.puesto, sceneId: quien.sceneId },
+    texto: redact(parsed ? (parsed.text || i18n.t('server.chat.vhAnswered')) : (result.texto || ''), secrets),
+    fallo: result.fallo,
+  });
+  if (!parsed) return reply({ error: result.fallo ? `${result.fallo.label}: ${result.fallo.detail || ''}`.slice(0, 400) : i18n.t('server.chat.empty', { name: quien.nombre }) });
+  return reply(parsed);
 }
 
 async function assistantStatus() {
@@ -2244,8 +2320,11 @@ async function handle(req, res) {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const parts = url.pathname.split('/').filter(Boolean);
 
+  // ViralHunt llama a una oficina como agente (puerta-bots.js → /api/bots/vh): su Bearer, cuando lo hay, es la llave acordada
+  // con esa oficina, no una llave om_ del panel; la verifica el propio manejador.
+  const vhCall = req.method === 'POST' && parts[0] === 'api' && parts[1] === 'bots' && parts[2] === 'vh';
   // Llave de agente (Authorization: Bearer om_…): acceso solo a su oficina (ver agentDenied).
-  const bearer = /^Bearer\s+(\S+)$/i.exec(req.headers.authorization || '')?.[1];
+  const bearer = vhCall ? null : /^Bearer\s+(\S+)$/i.exec(req.headers.authorization || '')?.[1];
   const agentKey = bearer ? oficinas.checkKey(bearer) : null;
   if (bearer) {
     if (!agentKey) return sendJson(res, 401, { error: i18n.t('server.error.invalidAgentKey') });
@@ -2255,7 +2334,7 @@ async function handle(req, res) {
   // Sin cookie, un curl a la API local lee el panel. La llave de agente sigue valiendo para su oficina.
   // La respuesta de un bot llega por puerta-bots.js sin cookie: su autorización es el token de un solo uso.
   const botReply = req.method === 'POST' && parts[0] === 'api' && parts[1] === 'bots' && parts[2] === 'respuesta';
-  if (panel && (parts[0] === 'api' || parts[0] === 'raw') && !agentKey && !botReply && !acceso.acepta(panel, req)) {
+  if (panel && (parts[0] === 'api' || parts[0] === 'raw') && !agentKey && !botReply && !vhCall && !acceso.acepta(panel, req)) {
     return sendJson(res, 401, { error: i18n.t('server.error.cookieRequired') });
   }
   // La oficina de la petición: la de la llave, o ?oficina= (por defecto, el edificio).
@@ -2338,6 +2417,26 @@ async function handle(req, res) {
       }
       return sendJson(res, r.status, r.status === 200 ? { ok: true } : { error: r.status === 404 ? i18n.t('server.error.unknownToken') : i18n.t('server.error.expiredToken') });
     }
+    // ViralHunt llama a la oficina como agente (puerta-bots.js: /bots/vh/<oficina>). La firma es la llave acordada en el panel
+    // (Editorial → Conexión ViralHunt → agente). type "ping" contesta pong en la misma respuesta; type "task" se acepta al momento
+    // y se contesta en reply_to cuando la CLI termina (runViralHuntTask). Otro type: 200 y nada, como pide el contrato.
+    if (parts[2] === 'vh' && parts.length === 3 && req.method === 'POST') {
+      const o = oficinas.read(url.searchParams.get('oficina') || '');
+      if (!o || o.id === EDIFICIO) return sendJson(res, 404, { error: i18n.t('server.error.officeMissing') });
+      const raw = (await readRaw(req, BOT_MAX_BODY)).toString('utf8');
+      if (!viralhunt.verifyAgentCall(o.id, req.headers, raw)) return sendJson(res, 401, { error: i18n.t('viralhunt.err.badSignature') });
+      let msg;
+      try { msg = JSON.parse(raw); } catch { return sendJson(res, 400, { error: i18n.t('server.error.invalidJson') }); }
+      if (!msg || typeof msg !== 'object' || Array.isArray(msg)) return sendJson(res, 400, { error: i18n.t('server.error.invalidJson') });
+      if (msg.type === 'ping') { oficinas.bitacora(o.id, i18n.t('server.log.vhPing')); return sendJson(res, 200, { text: 'pong' }); }
+      if (msg.type === 'task') {
+        if (!vhReplyUrlOk(String(msg.reply_to || ''))) return sendJson(res, 400, { error: i18n.t('viralhunt.err.badReplyTo') });
+        oficinas.bitacora(o.id, i18n.t('server.log.vhTask', { id: msg.task?.id ?? '?' }));
+        runViralHuntTask(o.id, msg).catch(err => oficinas.bitacora(o.id, i18n.t('server.log.vhTaskFailed', { id: msg.task?.id ?? '?', why: String(err?.message || err) })));
+        return sendJson(res, 202, { ok: true, status: 'working' });
+      }
+      return sendJson(res, 200, { ok: true });
+    }
     // Un bot inicia algo en SU oficina con una llave de agente (puerta-bots.js: /bots/o/<oficina>/<llave>).
     // Con "mision" (en curso, de su oficina) es una directiva; sin ella, una misión nueva.
     if (parts[2] === 'mensaje' && parts.length === 3 && req.method === 'POST') {
@@ -2358,6 +2457,18 @@ async function handle(req, res) {
       if (req.method === 'GET') return sendJson(res, 200, { publicUrl: bots.publicUrl() });
       if (req.method === 'PUT' || req.method === 'POST') return sendJson(res, 200, { publicUrl: bots.setPublicUrl((await readBody(req)).publicUrl) });
     }
+    // El túnel rápido de Cloudflare (lib/tunel.js). GET: si hay cloudflared y dónde; PUT: la ruta que pega la persona;
+    // POST: lo arranca (lo pulsa la persona; si ya hay uno, no lanza otro) y guarda su URL como pública.
+    if (parts[2] === 'tunel' && parts.length === 3) {
+      if (req.method === 'GET') return sendJson(res, 200, bots.tunnelInfo());
+      if (req.method === 'PUT') { bots.setCloudflaredPath((await readBody(req)).ruta); return sendJson(res, 200, bots.tunnelInfo()); }
+      if (req.method === 'POST') {
+        const r = await bots.startTunnel();
+        if (!r.ok && r.reason === 'missing') return sendJson(res, 404, { ...r, error: i18n.t('bots.err.cloudflaredMissing') });
+        if (!r.ok) return sendJson(res, 502, { ...r, log: undefined, error: i18n.t('bots.err.tunnelNoUrl') });
+        return sendJson(res, 200, { ...r, efimera: true });
+      }
+    }
     // Arranca la puerta en este PC, sin permisos de administrador. Si ya escucha, no lanza otra.
     if (parts[2] === 'puerta' && parts.length === 3 && req.method === 'POST') {
       const before = await bots.gateUp();
@@ -2376,6 +2487,24 @@ async function handle(req, res) {
     const o = oficinas.read(parts[2]);
     if (!o || o.id === EDIFICIO) return sendJson(res, 404, { error: i18n.t('server.error.officeMissing') });
     if (parts[3] === 'viralhunt') {
+      // La oficina como agente de ViralHunt: la llave acordada y la URL que la persona pega en Account → Agents. La llave sale
+      // UNA vez, solo cuando se genera aquí; después solo si hay una y de qué tipo.
+      if (parts[4] === 'agente' && parts.length === 5) {
+        const withUrl = r => ({ ...r, url: viralhunt.agentUrl(o.id, bots.publicUrl()), publicUrl: bots.publicUrl() || null, efimera: tunel.esEfimera(bots.publicUrl()) });
+        if (req.method === 'GET') return sendJson(res, 200, withUrl(viralhunt.estado(o.id)));
+        if (req.method === 'POST' || req.method === 'PUT') {
+          const r = viralhunt.setAgentKey(o.id, (await readBody(req)).llave);
+          oficinas.bitacora(o.id, i18n.t('server.log.vhAgentKeySaved'));
+          broadcast({ type: 'editorial-updated', oficina: o.id });
+          return sendJson(res, 200, withUrl(r));
+        }
+        if (req.method === 'DELETE') {
+          const r = viralhunt.removeAgentKey(o.id);
+          oficinas.bitacora(o.id, i18n.t('server.log.vhAgentKeyDeleted'));
+          broadcast({ type: 'editorial-updated', oficina: o.id });
+          return sendJson(res, 200, withUrl(r));
+        }
+      }
       if (parts.length === 4 && req.method === 'GET') return sendJson(res, 200, viralhunt.estado(o.id));
       if (parts.length === 4 && (req.method === 'PUT' || req.method === 'POST')) {
         const r = viralhunt.setToken(o.id, (await readBody(req)).token);

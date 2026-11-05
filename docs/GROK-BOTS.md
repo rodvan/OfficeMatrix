@@ -14,7 +14,7 @@ The office ⚙ dialog has a **Connect a Grok Bot** checklist. Each line is green
 ## Do these six things, in order
 
 1. **Gate on 4323.** OfficeMatrix talks to your bots through a small door, `node puerta-bots.js`, on `127.0.0.1:4323`. If the line is red, press **Start the gate**. That only starts the script. It does not ask for administrator rights and it does not install anything. If a gate is already listening, the button does nothing extra.
-2. **Public tunnel.** Grok Bot lives on the internet, so it cannot call your computer by name. You install Cloudflare's `cloudflared` yourself (see the next section) and paste the `https://…` address into **Public tunnel URL**. OfficeMatrix then calls that address at `/bots/health` and checks the round trip. It does not follow redirects. Green means the door answered `{ "ok": true, "servicio": "officematrix-bots" }`.
+2. **Public tunnel.** Grok Bot lives on the internet, so it cannot call your computer by name. You put Cloudflare's `cloudflared` on your computer yourself (see [The tunnel](#the-tunnel)) and press **Start the tunnel**: OfficeMatrix starts it and saves its `https://…` address as **Public tunnel URL**. Or paste the address of a tunnel you run yourself. OfficeMatrix then calls that address at `/bots/health` and checks the round trip. It does not follow redirects. Green means the door answered `{ "ok": true, "servicio": "officematrix-bots" }`.
 3. **Copy the routine instruction and the sample JSON.** The two copy buttons match the language of the app. Paste the instruction into the Grok Bot routine that starts from a webhook.
 4. **Paste the webhook URL and the key.** In the Grok Bot desktop app, open the routine's menu. The URL is there. The key stays hidden until you reveal it (Grok Bot 0.75.2, 22 Oct 2026). The bot cannot read them out loud for you. The key is stored only in that office's `bots.secreto.json`. It is not written to the chat, to logs, or to any API response.
 5. **Ping.** **Test** sends `tipo: "ping"`. A healthy routine answers `pong`. The line shows that word and the latency. `200` or `202` only means the webhook accepted the call, not that the routine finished. The word `pong` is the proof.
@@ -22,23 +22,59 @@ The office ⚙ dialog has a **Connect a Grok Bot** checklist. Each line is green
 
 **Copy this bot to another office** copies the character. The webhook key stays behind unless you tick the box and confirm. A typed "yes" in JSON is not that confirmation: the field has to be the boolean `true`.
 
-## Cloudflare, for beginners
+## The tunnel
 
-OfficeMatrix never downloads `cloudflared` and never needs an admin prompt. You run these steps.
+Grok Bot and ViralHunt live on the internet, so they cannot call your computer by name. A Cloudflare tunnel gives the gate (`http://localhost:4323`, and only the gate) a public `https://` address. OfficeMatrix never downloads or installs `cloudflared` and never needs an admin prompt: you put the program on your computer, and OfficeMatrix starts it only when you press the button.
 
-1. Install `cloudflared` from Cloudflare's own site.
-2. **Quick tunnel** (try it on your machine). In a terminal:
+### 1. Install cloudflared
 
-   ```
-   cloudflared tunnel --url http://localhost:4323
-   ```
+- **Windows, with winget:** `winget install --id Cloudflare.cloudflared`.
+- **Windows, without winget (direct download):** open [github.com/cloudflare/cloudflared/releases](https://github.com/cloudflare/cloudflared/releases), download `cloudflared-windows-amd64.exe` (`-arm64` on an ARM PC), make the folder `%USERPROFILE%\cloudflared` and save the file there **renamed to `cloudflared.exe`**. No installer runs and no admin rights are needed.
+- **macOS:** `brew install cloudflared`, or the `cloudflared-darwin-*.tgz` from the same releases page, unpacked into `/usr/local/bin`.
+- **Linux:** the `cloudflared-linux-amd64` (or `-arm64`) file from the releases page, saved as `~/.cloudflared/cloudflared` and made executable (`chmod +x`), or your distribution's package.
 
-   Copy the `https://` address it prints into **Public tunnel URL**.
-3. **Named tunnel** (keep the same address). In Cloudflare Zero Trust, create a tunnel and a public hostname. The service is only `http://localhost:4323`.
-4. The service must be exactly `http://localhost:4323`. That is the bots' gate. The panel stays on your computer (port 4321).
-5. Never point the tunnel at port 4321, 4322, or the panel. The gate forwards only bot replies and the health check.
+OfficeMatrix looks for it in this order: the path you pasted in the dialog (**cloudflared path**, saved in `bots-ajustes.json` as `cloudflaredPath`), the `PATH`, then `%USERPROFILE%\cloudflared\`, `%ProgramFiles%\cloudflared\`, `~/.cloudflared/`, `/usr/local/bin` and `/opt/homebrew/bin`. If it finds nothing, the dialog says which file to download and where to put it.
 
-`BOTS_PORT` changes the gate port. Leave it alone unless you already know you need to. The tunnel still has to point at that same port, and only at the gate.
+### 2. Quick tunnel (to try it)
+
+In the office ⚙ → *Connect a Grok Bot*, press **Start the tunnel**. OfficeMatrix runs
+
+```
+cloudflared tunnel --url http://localhost:4323
+```
+
+writes its output to `logs/cloudflared.log`, reads the `https://<random-words>.trycloudflare.com` address from that log and saves it as the **Public tunnel URL** for you. If a tunnel is already running (the one it started, or one you started by hand that already answers), it does not start another. Nothing starts on its own.
+
+You can still do it by hand: run the same command in a terminal and paste the address it prints into **Public tunnel URL**.
+
+### 3. Named tunnel (to keep the address)
+
+A quick tunnel has no uptime guarantee and Cloudflare says to use a named tunnel for anything that has to stay up. With a Cloudflare account and a domain on Cloudflare:
+
+```
+cloudflared tunnel login
+cloudflared tunnel create officematrix-bots
+cloudflared tunnel route dns officematrix-bots bots.yourdomain.com
+```
+
+Then a `config.yml` next to the tunnel's credentials file (`~/.cloudflared/` or `%USERPROFILE%\.cloudflared\`):
+
+```yaml
+tunnel: officematrix-bots
+credentials-file: <the .json path that "tunnel create" printed>
+ingress:
+  - hostname: bots.yourdomain.com
+    service: http://localhost:4323
+  - service: http_status:404
+```
+
+Run it with `cloudflared tunnel run officematrix-bots` (or install it as a service) and paste `https://bots.yourdomain.com` into **Public tunnel URL**. The Zero Trust dashboard (Networks → Tunnels) does the same with clicks.
+
+The service must be exactly `http://localhost:4323`, the bots' gate. Never point the tunnel at port 4321, 4322 or the panel. `BOTS_PORT` changes the gate port; the tunnel then points at that port, and only at the gate.
+
+### The quick tunnel's address changes
+
+> ⚠️ A `*.trycloudflare.com` address is new **every time the tunnel starts** (after a reboot, after closing its window, after pressing the button again once it died). The dialog and the ViralHunt agent card show a warning while the public URL is one of these. After each restart, copy the new URL into ViralHunt → Account → Agents and into your Grok Bot routines. For an address that never changes, use a named tunnel.
 
 ## What you paste into the routine
 

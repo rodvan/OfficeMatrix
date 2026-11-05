@@ -14,7 +14,7 @@ En el ⚙ de la oficina está el asistente **Connect a Grok Bot**. Cada línea s
 ## Seis pasos, en este orden
 
 1. **La puerta en el 4323.** OfficeMatrix habla con tus bots por una puerta pequeña, `node puerta-bots.js`, en `127.0.0.1:4323`. Si la línea está roja, pulsa **Arrancar la puerta**. Solo arranca el script. No pide administrador y no instala nada. Si ya hay una puerta escuchando, el botón no lanza otra.
-2. **El túnel público.** Grok Bot está en internet y no puede llamar a tu ordenador por su nombre. Instalas tú el `cloudflared` de Cloudflare (la sección siguiente) y pegas la dirección `https://…` en **URL pública del túnel**. OfficeMatrix llama a esa dirección en `/bots/health` y comprueba la ida y vuelta. No sigue redirecciones. Verde quiere decir que la puerta contestó `{ "ok": true, "servicio": "officematrix-bots" }`.
+2. **El túnel público.** Grok Bot está en internet y no puede llamar a tu ordenador por su nombre. Pones tú el `cloudflared` de Cloudflare en tu equipo (ver [El túnel](#el-túnel)) y pulsas **Arrancar el túnel**: OfficeMatrix lo arranca y guarda su dirección `https://…` como **URL pública del túnel**. O pega la dirección de un túnel que lleves tú. OfficeMatrix llama a esa dirección en `/bots/health` y comprueba la ida y vuelta. No sigue redirecciones. Verde quiere decir que la puerta contestó `{ "ok": true, "servicio": "officematrix-bots" }`.
 3. **Copia la instrucción de la rutina y el JSON de ejemplo.** Los dos botones siguen el idioma de la app. Pega la instrucción en la rutina de Grok Bot que arranca con un webhook.
 4. **Pega la URL del webhook y la llave.** En la app de escritorio de Grok Bot, abre el menú de la rutina. Ahí está la URL. La llave sigue oculta hasta que la revelas (Grok Bot 0.75.2, 22-oct-2026). El bot no puede leértelas. La llave se guarda solo en el `bots.secreto.json` de esa oficina. No se escribe en el chat, ni en los logs, ni en ninguna respuesta de la API.
 5. **Ping.** **Probar** manda `tipo: "ping"`. Una rutina sana contesta `pong`. La línea muestra esa palabra y la latencia. Un `200` o un `202` solo dicen que el webhook aceptó la llamada, no que la rutina terminó. La palabra `pong` es la prueba.
@@ -22,23 +22,59 @@ En el ⚙ de la oficina está el asistente **Connect a Grok Bot**. Cada línea s
 
 **Copiar este bot a otra oficina** copia el personaje. La llave del webhook no viaja salvo que marques la casilla y confirmes. Escribir `"true"` en JSON no es esa confirmación: el campo tiene que ser el booleano `true`.
 
-## Cloudflare, para quien empieza
+## El túnel
 
-OfficeMatrix no descarga `cloudflared` y no necesita un aviso de administrador. Estos pasos los haces tú.
+Grok Bot y ViralHunt están en internet y no pueden llamar a tu ordenador por su nombre. Un túnel de Cloudflare le da a la puerta (`http://localhost:4323`, y solo a la puerta) una dirección pública `https://`. OfficeMatrix nunca descarga ni instala `cloudflared` y nunca pide permisos de administrador: el programa lo pones tú en tu equipo, y OfficeMatrix solo lo arranca cuando pulsas el botón.
 
-1. Instala `cloudflared` desde el sitio de Cloudflare.
-2. **Túnel rápido** (para probarlo en tu máquina). En una terminal:
+### 1. Instalar cloudflared
 
-   ```
-   cloudflared tunnel --url http://localhost:4323
-   ```
+- **Windows, con winget:** `winget install --id Cloudflare.cloudflared`.
+- **Windows, sin winget (descarga directa):** abre [github.com/cloudflare/cloudflared/releases](https://github.com/cloudflare/cloudflared/releases), baja `cloudflared-windows-amd64.exe` (`-arm64` en un PC ARM), crea la carpeta `%USERPROFILE%\cloudflared` y guarda ahí el archivo **renombrado a `cloudflared.exe`**. No se ejecuta ningún instalador y no hace falta ser administrador.
+- **macOS:** `brew install cloudflared`, o el `cloudflared-darwin-*.tgz` de la misma página, descomprimido en `/usr/local/bin`.
+- **Linux:** el archivo `cloudflared-linux-amd64` (o `-arm64`) de la página de versiones, guardado como `~/.cloudflared/cloudflared` y con permiso de ejecución (`chmod +x`), o el paquete de tu distribución.
 
-   Copia la dirección `https://` que imprime en **URL pública del túnel**.
-3. **Túnel con nombre** (para quedarte con la misma dirección). En Cloudflare Zero Trust, crea un túnel y un hostname público. El servicio es solo `http://localhost:4323`.
-4. El servicio tiene que ser exactamente `http://localhost:4323`. Esa es la puerta de los bots. El panel se queda en tu ordenador (puerto 4321).
-5. No apuntes el túnel al puerto 4321, al 4322 ni al panel. La puerta solo reenvía respuestas de bots y la comprobación de salud.
+OfficeMatrix lo busca en este orden: la ruta que pegaste en el diálogo (**Ruta de cloudflared**, guardada en `bots-ajustes.json` como `cloudflaredPath`), el `PATH`, y después `%USERPROFILE%\cloudflared\`, `%ProgramFiles%\cloudflared\`, `~/.cloudflared/`, `/usr/local/bin` y `/opt/homebrew/bin`. Si no lo encuentra, el diálogo dice qué archivo bajar y dónde ponerlo.
 
-`BOTS_PORT` cambia el puerto de la puerta. Déjalo como está si no lo necesitas. El túnel tiene que apuntar a ese mismo puerto, y solo a la puerta.
+### 2. Túnel rápido (para probar)
+
+En el ⚙ de la oficina → *Conectar un Grok Bot*, pulsa **Arrancar el túnel**. OfficeMatrix ejecuta
+
+```
+cloudflared tunnel --url http://localhost:4323
+```
+
+escribe su salida en `logs/cloudflared.log`, lee de ese log la dirección `https://<palabras-al-azar>.trycloudflare.com` y la guarda por ti como **URL pública del túnel**. Si ya hay un túnel en marcha (el que arrancó él, o uno que arrancaste a mano y ya contesta), no lanza otro. Nada arranca solo.
+
+También puedes hacerlo a mano: ejecuta el mismo comando en una terminal y pega la dirección que imprime en **URL pública del túnel**.
+
+### 3. Túnel con nombre (para quedarte con la dirección)
+
+Un túnel rápido no tiene garantía de disponibilidad y Cloudflare dice que para lo que tenga que seguir en pie se use un túnel con nombre. Con una cuenta de Cloudflare y un dominio en Cloudflare:
+
+```
+cloudflared tunnel login
+cloudflared tunnel create officematrix-bots
+cloudflared tunnel route dns officematrix-bots bots.tudominio.com
+```
+
+Después, un `config.yml` junto al archivo de credenciales del túnel (`~/.cloudflared/` o `%USERPROFILE%\.cloudflared\`):
+
+```yaml
+tunnel: officematrix-bots
+credentials-file: <la ruta del .json que imprimió "tunnel create">
+ingress:
+  - hostname: bots.tudominio.com
+    service: http://localhost:4323
+  - service: http_status:404
+```
+
+Arráncalo con `cloudflared tunnel run officematrix-bots` (o instálalo como servicio) y pega `https://bots.tudominio.com` en **URL pública del túnel**. El panel de Zero Trust (Networks → Tunnels) hace lo mismo con clics.
+
+El servicio tiene que ser exactamente `http://localhost:4323`, la puerta de los bots. No apuntes nunca el túnel al puerto 4321, al 4322 ni al panel. `BOTS_PORT` cambia el puerto de la puerta; el túnel apunta entonces a ese puerto, y solo a la puerta.
+
+### La dirección del túnel rápido cambia
+
+> ⚠️ Una dirección `*.trycloudflare.com` es nueva **cada vez que el túnel arranca** (después de reiniciar el equipo, de cerrar su ventana, o de volver a pulsar el botón cuando se cayó). El diálogo y la tarjeta del agente de ViralHunt muestran un aviso mientras la URL pública sea una de estas. Después de cada reinicio, copia la URL nueva en ViralHunt → Account → Agents y en tus rutinas de Grok Bot. Para una dirección que no cambie, usa un túnel con nombre.
 
 ## Lo que pegas en la rutina
 

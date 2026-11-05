@@ -153,7 +153,7 @@ test('editorial de punta a punta: token, tanda programada, bandeja, aprobar, cam
   // Token: se guarda en el secreto de la oficina y la API solo dice si hay uno.
   assert.strictEqual((await api(`/api/oficinas/${office}/viralhunt`, { method: 'PUT', body: JSON.stringify({ token: 'no-es-un-token' }) })).status, 400);
   const t = await api(`/api/oficinas/${office}/viralhunt`, { method: 'PUT', body: JSON.stringify({ token: TOKEN }) });
-  assert.deepStrictEqual(t.body, { configurado: true });
+  assert.deepStrictEqual(t.body, { configurado: true, agente: { configurado: false, firma: null } });   // agente: la oficina como agente de ViralHunt (tests/viralhunt-agente.test.js)
   const probar = await api(`/api/oficinas/${office}/viralhunt/probar`, { method: 'POST', body: '{}' });
   assert.strictEqual(probar.body.plan, 'creator');
   assert.deepStrictEqual(probar.body.cuentas.map(c => c.network), ['instagram', 'x']);
@@ -308,5 +308,5 @@ test('el token nunca aparece en briefs, logs, chat.json, respuestas de la API ni
   assert.deepStrictEqual(fugas, []);
   assert.ok(fs.readFileSync(path.join(home, 'oficinas', office, 'viralhunt.secreto.json'), 'utf8').includes(TOKEN), 'el secreto sí lo guarda');
   // Borrar el token: la oficina deja de poder aprobar y lo dice.
-  assert.deepStrictEqual((await api(`/api/oficinas/${office}/viralhunt`, { method: 'DELETE' })).body, { configurado: false });
+  assert.deepStrictEqual((await api(`/api/oficinas/${office}/viralhunt`, { method: 'DELETE' })).body, { configurado: false, agente: { configurado: false, firma: null } });
 });

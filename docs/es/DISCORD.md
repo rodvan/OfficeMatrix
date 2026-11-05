@@ -3,6 +3,8 @@
 [![English](https://img.shields.io/badge/Language-English-blue.svg)](../DISCORD.md)
 [![Español](https://img.shields.io/badge/Idioma-Español-orange.svg)](DISCORD.md)
 
+> 🧭 ¿Primera vez? La [guía visual](VISUAL-GUIDE.md) lo explica con diagramas y recetas listas para copiar. Esta página es la referencia completa.
+
 Cada oficina puede tener **su propio bot de Discord**. Hablas con las IAs de tu oficina desde el celular, te llegan avisos
 cuando termina una misión y apruebas propuestas editoriales con un botón. El bot se conecta **hacia** Discord, así que no
 hay túnel ni puerto abierto. Tampoco necesita librerías extra: OfficeMatrix usa el WebSocket que ya trae Node.
@@ -30,7 +32,7 @@ Tu servidor de Discord
   Desde Discord, además, Claude pierde las herramientas de leer archivos y abrir páginas, así que nadie en un canal puede
   pedirle leer una ruta de tu disco. Las otras CLIs no tienen ese interruptor, y es otra razón para que solo hablen los
   usuarios autorizados.
-- **Imágenes.** Una IA solo puede generar imágenes con su propia herramienta. OfficeMatrix sube las que aparecen en ese turno (en su cajón temporal o en la carpeta de esa conversación: `~/.gemini/antigravity-cli/brain/<id>` para Antigravity y `~/.codex/generated_images/<id>` para Codex) y no las guarda en el chat.
+- **Imágenes.** Una IA solo puede generar imágenes con su propia herramienta. OfficeMatrix sube las que aparecen en ese turno (en su cajón temporal o en la carpeta de esa conversación: `~/.gemini/antigravity-cli/brain/<id>` para Antigravity, `~/.codex/generated_images/<id>` para Codex y `~/.grok/sessions/<carpeta>/<id>/images` para Grok) y no las guarda en el chat.
 - **El token se queda en tu PC.** Vive en `discord.secreto.json`, dentro de la carpeta de la oficina y fuera de git. El
   panel no lo vuelve a mostrar, y el chat lo tapa si alguien lo pega. **Nunca lo pegues en un chat.**
 - **Datos sensibles.** Si una oficina maneja datos que solo deben ir a las IAs que elegiste, no la conectes a Discord y
@@ -59,7 +61,8 @@ Repítelo en cada oficina, con una aplicación de Discord por oficina. Para la N
 | --- | --- |
 | `@bot @grok busca tendencias de Artemis` | Contesta esa IA de la oficina, firmado con su nombre |
 | `@bot ¿qué opinan?` (sin `@nombre`) | Contesta el **anfitrión del chat** de la oficina (⚙ → Anfitrión del chat); si no hay, Claude o la primera IA |
-| `@bot @gemini dibuja un astronauta en la luna` | Si la IA genera una imagen, llega a Discord con su respuesta (hasta 4 imágenes y 8 MB). Lo hacen Gemini (Antigravity) y Codex |
+| `@bot @gemini dibuja un astronauta en la luna` | Si la IA genera una imagen, llega a Discord con su respuesta (hasta 4 imágenes y 8 MB). Lo hacen Gemini (Antigravity), Codex y Grok |
+| `@bot barrida <tema>` | **Barrida de investigación**: cada IA investiga por su lado y un juez junta y compara (ver abajo) |
 | `@bot propuestas` | Las propuestas editoriales pendientes, como tarjetas con botones |
 | `@bot ayuda` | Un recordatorio corto |
 | Nave: `@nave estado` | Por oficina: misiones en curso, propuestas pendientes y el estado de su bot |
@@ -68,6 +71,46 @@ Repítelo en cada oficina, con una aplicación de Discord por oficina. Para la N
 
 Los mensajes de Discord también quedan en el chat de la oficina del panel, como «Discord · tu nombre», así que es una
 sola conversación.
+
+## 📘 Manual: qué pedirle a cada IA
+
+Todas contestan en solo lectura: desde Discord ninguna toca archivos ni lee tu disco. Cada turno tiene hasta 3 minutos (5 en una barrida).
+
+| IA | Escríbele | Busca en la web | Hace imágenes | Para qué sirve más |
+| --- | --- | --- | --- | --- |
+| Claude | `@claude` | Sí (busca, pero no abre páginas desde Discord) | No | Redactar, resumir, ordenar ideas; juez por defecto de la barrida |
+| Grok | `@grok` | Sí, también lo que se mueve en X | Sí | Tendencias del momento, imágenes, ángulos para posts |
+| Gemini (Antigravity) | `@gemini` | Sí | Sí | Investigar con Google, imágenes |
+| Codex | `@codex` | Solo si tu Codex tiene la búsqueda activada | Sí | Revisar datos y razonamientos, imágenes |
+| Kimi | `@kimi` | Sí (solo busca, sin abrir archivos) | No | Una segunda búsqueda independiente |
+
+Consejos:
+- **Una IA por pregunta** si quieres rapidez; **varias** (`@grok @gemini …`) si quieres opiniones distintas: contestan una tras otra y cada una ve lo que dijo la anterior.
+- **Para un post:** `@grok hazme un post sobre <tema>` y después `@grok hazle una imagen`. Pega el enlace de la fuente si lo tienes.
+- **Si una IA falla**, el mensaje empieza con ⚠️ y dice por qué (límite de uso, sesión caducada…). Pregúntale a otra mientras tanto.
+- **Una respuesta a la vez por oficina.** Si sale «La oficina está contestando», espera a que termine.
+
+## 🔎 Barrida de investigación
+
+Sirve para hacer posts con datos comprobados, encontrar desinformación y ver puntos ciegos. Cada IA investiga **por su lado y a la vez**, sin ver lo que encuentran las demás, y al final un **juez** cruza los informes.
+
+| Escribes | Qué pasa |
+| --- | --- |
+| `@bot barrida <tema>` | Investigan todas las IAs instaladas y activadas; juzga Claude |
+| `@bot barrida @grok @gemini @kimi <tema>` | Solo investigan esas |
+| `@bot barrida juez @gemini <tema>` | Juzga Gemini (el juez no investiga, para que no favorezca su propio informe) |
+| Nave: `@nave viralhunt: barrida <tema>` | La barrida se hace en esa oficina |
+
+Cada investigador entrega (🔎): **hallazgos** con fuente y fecha, **lo dudoso** (lo que circula pero es falso, exagerado o no se puede comprobar), **huecos** y su **confianza**.
+
+El juez (⚖️) devuelve:
+- **Resumen** de lo sólido.
+- **Coinciden:** lo que encontraron dos o más.
+- **Contradicciones y desinformación:** quién dijo qué y qué versión tiene mejor respaldo. Lo que dice uno solo y sin fuente queda como no verificado.
+- **Puntos ciegos:** lo que nadie miró.
+- **Ideas para posts:** 2 o 3 ganchos, solo con hechos bien respaldados.
+
+Tarda unos minutos. Antes de publicar, abre las fuentes de lo que vayas a afirmar: la barrida reduce los errores, pero no los elimina.
 
 ## 🔔 Avisos
 

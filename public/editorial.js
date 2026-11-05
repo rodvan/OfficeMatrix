@@ -710,6 +710,34 @@ function renderViralHunt() {
   if (result && vh.configurado) {
     result.textContent = `${t('ed.connOk')} · ${t('ed.vh.planLabel', { plan: vh.plan || 'standard' })} · ${t('ed.vh.accountsLabel', { accounts: (vh.cuentas || []).join(', ') })}`;
   }
+  renderViralHuntAgent();
+}
+
+// La oficina como agente de ViralHunt: estado, la URL que se pega en ViralHunt (vacía sin túnel) y la llave, que solo se ve
+// cuando se acaba de generar aquí (edVhAgentOnce). Después el campo queda vacío a propósito.
+let edVhAgentOnce = null;
+async function renderViralHuntAgent() {
+  const state = document.getElementById('edVhAgentState'), urlEl = document.getElementById('edVhAgentUrl');
+  if (!state || !urlEl || !currentEdOffice) return;
+  try {
+    const a = await edApi(`${edBase(currentEdOffice)}/viralhunt/agente`);
+    state.textContent = a.agente?.configurado ? t('ed.vhAgent.state.on', { firma: a.agente.firma }) : t('ed.vhAgent.state.off');
+    urlEl.value = a.url || '';
+    urlEl.placeholder = a.url ? '' : t('ed.vhAgent.noTunnel');
+    const eph = document.getElementById('edVhAgentEphemeral');
+    if (eph) { eph.hidden = !a.efimera; eph.textContent = a.efimera ? t('ed.vhAgent.ephemeral') : ''; }
+    const key = document.getElementById('edVhAgentKey');
+    if (key && edVhAgentOnce) key.value = edVhAgentOnce;
+  } catch (err) { state.textContent = err.message; }
+}
+async function edVhAgentSave(llave) {
+  const r = await edApi(`${edBase(currentEdOffice)}/viralhunt/agente`, { method: 'POST', body: JSON.stringify({ llave }) });
+  edVhAgentOnce = r.llave || null;
+  const out = document.getElementById('edVhAgentResult');
+  if (out) out.textContent = r.llave ? t('ed.vhAgent.keyOnce') : t('ed.vhAgent.saved');
+  await renderViralHuntAgent();
+  const key = document.getElementById('edVhAgentKey');
+  if (key) key.value = r.llave || '';
 }
 
 // Inicialización de la página /editorial.html
@@ -930,6 +958,30 @@ async function initEditorialDashboard() {
       await edApi(`${edBase(currentEdOffice)}/viralhunt`, { method: 'DELETE' });
       edToast('ViralHunt disconnected.');
       await loadFullDashboard(currentEdOffice);
+    } catch (err) { edToast(err.message); }
+  });
+
+  // La oficina como agente de ViralHunt
+  document.getElementById('edVhAgentGenBtn')?.addEventListener('click', async () => {
+    try { await edVhAgentSave(''); } catch (err) { edToast(err.message); }
+  });
+  document.getElementById('edVhAgentSaveBtn')?.addEventListener('click', async () => {
+    const k = document.getElementById('edVhAgentKey').value.trim();
+    try { await edVhAgentSave(k); } catch (err) { edToast(err.message); }
+  });
+  document.getElementById('edVhAgentCopyBtn')?.addEventListener('click', async () => {
+    const url = document.getElementById('edVhAgentUrl').value, key = document.getElementById('edVhAgentKey').value.trim();
+    const text = `URL: ${url || '(set the public tunnel URL first)'}\nKey: ${key || '(generate one, or the key you pasted here)'}`;
+    try { await navigator.clipboard.writeText(text); edToast(t('ed.vhAgent.copied')); } catch (err) { edToast(err.message); }
+  });
+  document.getElementById('edVhAgentDelBtn')?.addEventListener('click', async () => {
+    if (!confirm(t('ed.vhAgent.confirmRemove'))) return;
+    try {
+      await edApi(`${edBase(currentEdOffice)}/viralhunt/agente`, { method: 'DELETE' });
+      edVhAgentOnce = null;
+      const key = document.getElementById('edVhAgentKey'); if (key) key.value = '';
+      const out = document.getElementById('edVhAgentResult'); if (out) out.textContent = t('ed.vhAgent.removed');
+      await renderViralHuntAgent();
     } catch (err) { edToast(err.message); }
   });
 

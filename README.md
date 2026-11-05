@@ -19,7 +19,7 @@
 [![Flat-Rate Subscriptions](https://img.shields.io/badge/CLIs-Flat--Rate%20Subscriptions-D0704F?style=for-the-badge)](#-quick-start-in-3-steps)
 [![Created by Cerebro Digital](https://img.shields.io/badge/By-Cerebro%20Digital-7c5cff?style=for-the-badge)](https://github.com/rodvan)
 
-[**🇬🇧 English**](README.md) · [**🇪🇸 Español**](README.es.md) · [**🚀 Quick Start**](#-quick-start-in-3-steps) · [**🏛️ Work Modes**](#-three-orchestration-modes) · [**🌐 ViralHunt**](#-built-for-viralhunt) · [**🛸 Ship on Discord**](#-the-ship-and-its-offices-on-discord) · [**📖 Installation Guide**](docs/INSTALL.md) · [**🤖 Connect Agents**](docs/AGENTS.md) · [**💖 Support & Donate**](#-support--donations)
+[**🇬🇧 English**](README.md) · [**🇪🇸 Español**](README.es.md) · [**🚀 Quick Start**](#-quick-start-in-3-steps) · [**🏛️ Work Modes**](#-three-orchestration-modes) · [**🌐 ViralHunt**](#-built-for-viralhunt) · [**🛸 Ship on Discord**](#-the-ship-and-its-offices-on-discord) · [**📖 Installation Guide**](docs/INSTALL.md) · [**🤖 Connect Agents**](docs/AGENTS.md) · [**🧭 Visual Guide**](docs/VISUAL-GUIDE.md) · [**💖 Support & Donate**](#-support--donations)
 
 </div>
 
@@ -256,7 +256,9 @@ flowchart TB
 - **Safe by default:** only the Discord IDs you authorize are obeyed. Discord turns are read-only, and Claude also loses
   file tools. The token stays on your PC. The bot connects out, so no tunnel and no open ports.
 
-Set it up in 5 minutes per office: [docs/DISCORD.md](docs/DISCORD.md).
+Set it up in 5 minutes per office: [docs/DISCORD.md](docs/DISCORD.md). With diagrams, recipes and the research sweep: [🧭 Visual guide](docs/VISUAL-GUIDE.md).
+
+<p align="center"><img src="docs/img/guia/barrida-en.svg" alt="Research sweep: every AI researches apart and a judge compares" width="720"></p>
 
 ---
 
@@ -355,7 +357,7 @@ Kimi Code CLI (`kimi`) supports device-code OAuth (`kimi login`) with a Kimi Plu
 We maintain a rigorous zero-dependency automated test suite:
 
 ```bash
-# Run all unit and integration tests (252, zero dependencies)
+# Run all unit and integration tests (274, zero dependencies)
 npm test
 
 # Run repository publication hygiene check
@@ -383,5 +385,6 @@ If OfficeMatrix accelerates your workflow, saves you hours of manual prompt-rout
 - **Contributing:** Read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on code standards, stream adapters, and test fixtures.
 - **Security:** Read [SECURITY.md](SECURITY.md) to report security concerns privately.
 - **Code of Conduct:** [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+- **Updating the docs:** [docs/CONTRIBUTING-DOCS.md](docs/CONTRIBUTING-DOCS.md) (English and Spanish side by side, the decision log, what never goes in a doc).
 - **All the docs:** [docs/README.md](docs/README.md) (installing, agents, modes, editorial desk, Grok Bots, external agents and publishing).
 - **License:** Distributed under the [Apache License 2.0](LICENSE).

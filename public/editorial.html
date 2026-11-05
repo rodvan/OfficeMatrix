@@ -208,6 +208,29 @@
           </div>
           <p id="edVhResult" role="status" style="margin-top:12px"></p>
         </div>
+        <div class="ed-vh-form-card" id="edVhAgentCard">
+          <h3 data-i18n="ed.vhAgent.title">This office as a ViralHunt agent</h3>
+          <p class="muted" data-i18n="ed.vhAgent.howTo">ViralHunt calls this office by webhook when someone asks it from the composer (Account → Agents). Generate a key here, then paste the URL and the key in ViralHunt's Agents page; or paste here the key ViralHunt generated. The office's chat host (or Claude) answers each task.</p>
+          <p id="edVhAgentState" class="muted"></p>
+          <div class="field-row">
+            <label><span data-i18n="ed.vhAgent.urlLabel">Webhook URL to paste in ViralHunt</span>
+              <input type="text" id="edVhAgentUrl" class="field" readonly>
+            </label>
+          </div>
+          <p id="edVhAgentEphemeral" class="muted" hidden></p>
+          <div class="field-row">
+            <label><span data-i18n="ed.vhAgent.keyLabel">Key</span>
+              <input type="text" id="edVhAgentKey" class="field" autocomplete="off" placeholder="Leave empty to generate one, or paste the key ViralHunt gave you" data-i18n-placeholder="ed.vhAgent.keyPlaceholder">
+            </label>
+          </div>
+          <div class="ed-actions" style="margin-top:12px">
+            <button type="button" class="btn small primary" id="edVhAgentGenBtn" data-i18n="ed.vhAgent.btnGenerate">Generate and save a key</button>
+            <button type="button" class="btn small ghost" id="edVhAgentSaveBtn" data-i18n="ed.vhAgent.btnSave">Save this key</button>
+            <button type="button" class="btn small ghost" id="edVhAgentCopyBtn" data-i18n="ed.vhAgent.copy">Copy URL and key</button>
+            <button type="button" class="btn small ghost" id="edVhAgentDelBtn" data-i18n="ed.vhAgent.btnRemove">Remove</button>
+          </div>
+          <p id="edVhAgentResult" role="status" style="margin-top:12px"></p>
+        </div>
         <div class="ed-vh-guide-card">
           <h3 data-i18n="ed.vh.tokenGuideTitle">Writer Token vs Publisher Token</h3>
           <div class="ed-token-comparison">

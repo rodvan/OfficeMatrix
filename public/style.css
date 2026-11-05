@@ -81,7 +81,11 @@ code { background: var(--panel-2); padding: 0 4px; border-radius: 3px; }
 .brand small { font-weight: 400; letter-spacing: .08em; color: var(--dim); font-size: 10px; }
 .logo { width: 14px; height: 14px; background: conic-gradient(var(--accent) 0 75%, var(--amber) 0); clip-path: polygon(0 0, 45% 0, 45% 45%, 0 45%, 0 55%, 45% 55%, 45% 100%, 0 100%, 0 0, 55% 0, 100% 0, 100% 45%, 55% 45%, 55% 55%, 100% 55%, 100% 100%, 55% 100%, 55% 55%); }
 .top-status { display: flex; gap: 14px; flex: 1; overflow: hidden; font-size: 10px; letter-spacing: .08em; mask-image: linear-gradient(90deg, #000 85%, transparent); max-width: calc(100vw - 420px); }
-.top-status span { white-space: nowrap; color: var(--dim); }
+.top-status span, .top-status label { white-space: nowrap; color: var(--dim); }
+.top-status label { cursor: pointer; display: inline-flex; align-items: center; }
+.top-status label.out { opacity: .45; text-decoration: line-through; }
+.top-status .tp-cb { margin: 0 5px 0 0; width: 11px; height: 11px; accent-color: var(--ok); cursor: pointer; }
+.top-status .tp-cb:disabled { cursor: not-allowed; }
 .top-status i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; background: var(--faint); }
 .top-status .ok i { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
 .top-status .busy i { background: var(--amber); box-shadow: 0 0 6px var(--amber); animation: pulse 1s infinite; }

@@ -64,7 +64,8 @@ siempre con `text`; un lector propio solo añade detalle a la burbuja.
 
 **En el chat de la oficina, la CLI solo lee.** Para un turno de chat, OfficeMatrix quita los flags de escritura de las
 CLIs conocidas (`claude`: `--permission-mode plan` y `--disallowedTools Write,Edit,MultiEdit,NotebookEdit,Bash`; `codex`:
-`--sandbox read-only`; `grok` y `agy`: sin autoaprobar). Para otra CLI, pon un `"chatArgs"` opcional: sustituye a `args`
+`--sandbox read-only`; `grok`: autoaprueba, pero sin sus herramientas de escribir ni de ejecutar órdenes, así que puede buscar y
+hacer imágenes; `agy`: sin autoaprobar). Para otra CLI, pon un `"chatArgs"` opcional: sustituye a `args`
 solo en el chat.
 
 ## 2. Probar un agente nuevo

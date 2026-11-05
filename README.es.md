@@ -20,7 +20,7 @@
 [![Suscripciones Flat-Rate](https://img.shields.io/badge/CLIs-Suscripciones%20Oficiales-D0704F?style=for-the-badge)](#-instalación-rápida-en-3-pasos)
 [![Creado por Cerebro Digital](https://img.shields.io/badge/Por-Cerebro%20Digital-7c5cff?style=for-the-badge)](https://github.com/rodvan)
 
-[**🇬🇧 English**](README.md) · [**🇪🇸 Español**](README.es.md) · [**🚀 Instalación Rápida**](#-instalación-rápida-en-3-pasos) · [**🏛️ Modos de Trabajo**](#-tres-modos-de-orquestación) · [**🌐 ViralHunt**](#-hecha-para-viralhunt) · [**🛸 La Nave en Discord**](#-la-nave-y-sus-oficinas-en-discord) · [**📖 Guía de Instalación**](docs/INSTALAR.md) · [**🤖 Conectar Agentes**](docs/AGENTES.md) · [**💖 Donaciones**](#-apoyo-y-donaciones)
+[**🇬🇧 English**](README.md) · [**🇪🇸 Español**](README.es.md) · [**🚀 Instalación Rápida**](#-instalación-rápida-en-3-pasos) · [**🏛️ Modos de Trabajo**](#-tres-modos-de-orquestación) · [**🌐 ViralHunt**](#-hecha-para-viralhunt) · [**🛸 La Nave en Discord**](#-la-nave-y-sus-oficinas-en-discord) · [**📖 Guía de Instalación**](docs/INSTALAR.md) · [**🤖 Conectar Agentes**](docs/AGENTES.md) · [**🧭 Guía Visual**](docs/es/VISUAL-GUIDE.md) · [**💖 Donaciones**](#-apoyo-y-donaciones)
 
 </div>
 
@@ -258,7 +258,9 @@ flowchart TB
   Claude además pierde las herramientas de archivos. El token se queda en tu PC. El bot se conecta hacia afuera: sin túnel
   ni puertos abiertos.
 
-Se configura en 5 minutos por oficina: [docs/es/DISCORD.md](docs/es/DISCORD.md).
+Se configura en 5 minutos por oficina: [docs/es/DISCORD.md](docs/es/DISCORD.md). Con diagramas, recetas y la barrida de investigación: [🧭 Guía visual](docs/es/VISUAL-GUIDE.md).
+
+<p align="center"><img src="docs/img/guia/barrida-es.svg" alt="Barrida: cada IA investiga aparte y un juez compara" width="720"></p>
 
 ---
 
@@ -358,7 +360,7 @@ La CLI oficial Kimi Code (`kimi`) admite autenticación OAuth mediante código d
 Mantenemos una batería automatizada rigurosa con cero dependencias externas:
 
 ```bash
-# Ejecutar las pruebas unitarias y de integración (252, sin dependencias)
+# Ejecutar las pruebas unitarias y de integración (274, sin dependencias)
 npm test
 
 # Escaneo de higiene y privacidad antes de publicar
@@ -386,5 +388,6 @@ Si OfficeMatrix te ahorra horas de trabajo o previene errores críticos en tus p
 - **Contribuciones:** Consulta [CONTRIBUTING.md](CONTRIBUTING.md) para pautas de código y adaptadores de streams.
 - **Seguridad:** Consulta [SECURITY.md](SECURITY.md) para reportar vulnerabilidades de forma privada.
 - **Código de Conducta:** [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+- **Actualizar la documentación:** [docs/es/CONTRIBUTING-DOCS.md](docs/es/CONTRIBUTING-DOCS.md) (inglés y español lado a lado, el registro de decisiones, lo que nunca va en un doc).
 - **Toda la documentación:** [docs/es/README.md](docs/es/README.md) (instalar, agentes, modos, editorial, Grok Bots, agentes externos y publicar).
 - **Licencia:** Distribuido bajo la [Licencia Apache 2.0](LICENSE).

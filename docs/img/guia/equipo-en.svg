@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 236" role="img" aria-labelledby="t d">
+  <title id="t">Your AI team in Discord</title>
+  <desc id="d">What each AI is good at, whether it searches the web and whether it makes images.</desc>
+  <rect width="760" height="236" rx="18" fill="#12141c"/>
+  <g font-family="Segoe UI, Helvetica, Arial, sans-serif">
+<text x="28" y="34" fill="#c8c4d4" font-size="12" font-weight="400" text-anchor="start" letter-spacing="0.08em">WHO DOES WHAT · WRITE @NAME</text><g opacity="0"><animate attributeName="opacity" from="0" to="1" begin="0s" dur="0.6s" fill="freeze"/>
+      <rect x="28" y="52" width="132" height="164" rx="14" fill="#1a1d29" stroke="#d0704f" stroke-width="1.8"/>
+      <circle cx="58" cy="84" r="16" fill="#d0704f22" stroke="#d0704f" stroke-width="2"/><text x="58" y="89" fill="#d0704f" font-size="12.5" font-weight="700" text-anchor="middle">Cl</text><text x="82" y="82" fill="#eeeaf8" font-size="14" font-weight="700" text-anchor="start">Claude</text><text x="82" y="98" fill="#d0704f" font-size="11" font-weight="400" text-anchor="start">@claude</text>
+      <text x="42" y="132" fill="#c8f5dc" font-size="11" font-weight="400" text-anchor="start">🌐 web</text>
+      <text x="42" y="151" fill="#a9a4b8" font-size="11" font-weight="400" text-anchor="start">· no images</text>
+      <line x1="42" y1="164" x2="146" y2="164" stroke="#2a2e3c"/>
+      <text x="42" y="183" fill="#eeeaf8" font-size="11" font-weight="400" text-anchor="start">Writes, summarizes,</text><text x="42" y="198" fill="#eeeaf8" font-size="11" font-weight="400" text-anchor="start">default judge</text></g><g opacity="0"><animate attributeName="opacity" from="0" to="1" begin="0.2s" dur="0.6s" fill="freeze"/>
+      <rect x="172" y="52" width="132" height="164" rx="14" fill="#1a1d29" stroke="#c062d6" stroke-width="1.8"/>
+      <circle cx="202" cy="84" r="16" fill="#c062d622" stroke="#c062d6" stroke-width="2"/><text x="202" y="89" fill="#c062d6" font-size="12.5" font-weight="700" text-anchor="middle">Gr</text><text x="226" y="82" fill="#eeeaf8" font-size="14" font-weight="700" text-anchor="start">Grok</text><text x="226" y="98" fill="#c062d6" font-size="11" font-weight="400" text-anchor="start">@grok</text>
+      <text x="186" y="132" fill="#c8f5dc" font-size="11" font-weight="400" text-anchor="start">🌐 web</text>
+      <text x="186" y="151" fill="#c8f5dc" font-size="11" font-weight="400" text-anchor="start">🖼️ images</text>
+      <line x1="186" y1="164" x2="290" y2="164" stroke="#2a2e3c"/>
+      <text x="186" y="183" fill="#eeeaf8" font-size="11" font-weight="400" text-anchor="start">Trends right now,</text><text x="186" y="198" fill="#eeeaf8" font-size="11" font-weight="400" text-anchor="start">X, images</text></g><g opacity="0"><animate attributeName="opacity" from="0" to="1" begin="0.4s" dur="0.6s" fill="freeze"/>
+      <rect x="316" y="52" width="132" height="164" rx="14" fill="#1a1d29" stroke="#4f8df5" stroke-width="1.8"/>
+      <circle cx="346" cy="84" r="16" fill="#4f8df522" stroke="#4f8df5" stroke-width="2"/><text x="346" y="89" fill="#4f8df5" font-size="12.5" font-weight="700" text-anchor="middle">Ge</text><text x="370" y="82" fill="#eeeaf8" font-size="14" font-weight="700" text-anchor="start">Gemini</text><text x="370" y="98" fill="#4f8df5" font-size="11" font-weight="400" text-anchor="start">@gemini</text>
+      <text x="330" y="132" fill="#c8f5dc" font-size="11" font-weight="400" text-anchor="start">🌐 web</text>
+      <text x="330" y="151" fill="#c8f5dc" font-size="11" font-weight="400" text-anchor="start">🖼️ images</text>
+      <line x1="330" y1="164" x2="434" y2="164" stroke="#2a2e3c"/>
+      <text x="330" y="183" fill="#eeeaf8" font-size="11" font-weight="400" text-anchor="start">Google research,</text><text x="330" y="198" fill="#eeeaf8" font-size="11" font-weight="400" text-anchor="start">images</text></g><g opacity="0"><animate attributeName="opacity" from="0" to="1" begin="0.6000000000000001s" dur="0.6s" fill="freeze"/>
+      <rect x="460" y="52" width="132" height="164" rx="14" fill="#1a1d29" stroke="#10a37f" stroke-width="1.8"/>
+      <circle cx="490" cy="84" r="16" fill="#10a37f22" stroke="#10a37f" stroke-width="2"/><text x="490" y="89" fill="#10a37f" font-size="12.5" font-weight="700" text-anchor="middle">Co</text><text x="514" y="82" fill="#eeeaf8" font-size="14" font-weight="700" text-anchor="start">Codex</text><text x="514" y="98" fill="#10a37f" font-size="11" font-weight="400" text-anchor="start">@codex</text>
+      <text x="474" y="132" fill="#c8f5dc" font-size="11" font-weight="400" text-anchor="start">🌐 web (if enabled)</text>
+      <text x="474" y="151" fill="#c8f5dc" font-size="11" font-weight="400" text-anchor="start">🖼️ images</text>
+      <line x1="474" y1="164" x2="578" y2="164" stroke="#2a2e3c"/>
+      <text x="474" y="183" fill="#eeeaf8" font-size="11" font-weight="400" text-anchor="start">Checks data and</text><text x="474" y="198" fill="#eeeaf8" font-size="11" font-weight="400" text-anchor="start">reasoning, images</text></g><g opacity="0"><animate attributeName="opacity" from="0" to="1" begin="0.8s" dur="0.6s" fill="freeze"/>
+      <rect x="604" y="52" width="132" height="164" rx="14" fill="#1a1d29" stroke="#3b6cff" stroke-width="1.8"/>
+      <circle cx="634" cy="84" r="16" fill="#3b6cff22" stroke="#3b6cff" stroke-width="2"/><text x="634" y="89" fill="#3b6cff" font-size="12.5" font-weight="700" text-anchor="middle">Ki</text><text x="658" y="82" fill="#eeeaf8" font-size="14" font-weight="700" text-anchor="start">Kimi</text><text x="658" y="98" fill="#3b6cff" font-size="11" font-weight="400" text-anchor="start">@kimi</text>
+      <text x="618" y="132" fill="#c8f5dc" font-size="11" font-weight="400" text-anchor="start">🌐 web</text>
+      <text x="618" y="151" fill="#a9a4b8" font-size="11" font-weight="400" text-anchor="start">· no images</text>
+      <line x1="618" y1="164" x2="722" y2="164" stroke="#2a2e3c"/>
+      <text x="618" y="183" fill="#eeeaf8" font-size="11" font-weight="400" text-anchor="start">A second,</text><text x="618" y="198" fill="#eeeaf8" font-size="11" font-weight="400" text-anchor="start">independent search</text></g>
+  </g>
+</svg>

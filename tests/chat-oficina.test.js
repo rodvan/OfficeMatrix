@@ -8,7 +8,7 @@ const path = require('path');
 const http = require('http');
 const crypto = require('crypto');
 const { spawnSync } = require('child_process');
-const { redact, recipients, readOnlyArgs, entregaDelPrompt } = require('../lib/chat-oficina');
+const { redact, recipients, readOnlyArgs, entregaDelPrompt, carpetasDeImagenes, parseBarrida, barridaPrompt, juezPrompt } = require('../lib/chat-oficina');
 const { verifyStandard } = require('../lib/bots');
 
 const home = fs.mkdtempSync(path.join(os.tmpdir(), 'om-office-chat-'));
@@ -268,10 +268,64 @@ test('un turno de chat de CLI no lleva flags de escritura', () => {
   assert.strictEqual(codex[0], 'exec');
   assert.ok(!codex.includes('workspace-write'), codex.join(' '));
   assert.strictEqual(codex[codex.indexOf('--sandbox') + 1], 'read-only');
-  assert.ok(!argv('grok').includes('--always-approve'));
+  // Grok aprueba solo (si no, cancela sus imágenes), pero sin las herramientas que escriben o ejecutan.
+  const grok = argv('grok');
+  assert.strictEqual(grok.filter(a => a === '--always-approve').length, 1);
+  assert.match(grok[grok.indexOf('--disallowed-tools') + 1], /run_terminal_command.*search_replace.*write/);
+  assert.doesNotMatch(grok[grok.indexOf('--disallowed-tools') + 1], /image_gen|web_search|read_file/);
+  const grokDiscord = readOnlyArgs('grok', ejemplo.find(x => x.id === 'grok').args, { sinArchivos: true });
+  assert.match(grokDiscord[grokDiscord.indexOf('--disallowed-tools') + 1], /read_file,list_dir,grep$/);
   assert.ok(!argv('gemini').includes('--dangerously-skip-permissions'));
   assert.deepStrictEqual(readOnlyArgs('codex', ['exec', '--sandbox=danger-full-access', 'x']), ['exec', 'x', '--sandbox', 'read-only']);
   assert.deepStrictEqual(readOnlyArgs('text', ['a', '--b']), ['a', '--b'], 'un stream desconocido no se toca');
+});
+
+test('Grok recibe el prompt con --prompt-file y sus imágenes se buscan en su carpeta de sesión', () => {
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), 'om-grok-'));
+  try {
+    const { args, stdin } = entregaDelPrompt('grok', ['-p', '{prompt}', '--output-format', 'streaming-json'], { prompt: 'hola', orden: 'lee', sandbox });
+    assert.deepStrictEqual(args, ['--prompt-file', path.join(sandbox, 'chat-prompt.md'), '--output-format', 'streaming-json']);
+    assert.strictEqual(stdin, '');
+    assert.strictEqual(fs.readFileSync(path.join(sandbox, 'chat-prompt.md'), 'utf8'), 'hola');
+  } finally { fs.rmSync(sandbox, { recursive: true, force: true }); }
+  const stdout = '{"type":"end","stopReason":"end_turn","sessionId":"01a1acbb-badd-7531-b0a8-01d4bd7d6521","cwd":"C:\\\\Tmp\\\\om-chat-x"}';
+  assert.deepStrictEqual(carpetasDeImagenes('grok', stdout, {}, 'H'), [path.join('H', '.grok', 'sessions', 'C%3A%5CTmp%5Com-chat-x', '01a1acbb-badd-7531-b0a8-01d4bd7d6521', 'images')]);
+  assert.strictEqual(carpetasDeImagenes('grok', stdout, { GROK_HOME: '~/.grok-2' }, 'H')[0].startsWith(path.join('H', '.grok-2', 'sessions')), true);
+});
+
+test('barrida: investigan por separado y el juez cruza los informes', async () => {
+  const r = await api('/api/oficinas/sala/chat', { method: 'POST', body: JSON.stringify({ texto: 'barrida @stream @kimi juez @grok el tema de prueba' }) });
+  assert.strictEqual(r.status, 200);
+  assert.deepStrictEqual(r.body.mensajes.map(m => m.autor.id), ['owner', 'system', 'sj', 'kimi', 'cli']);
+  assert.match(r.body.mensajes[1].texto, /Stream, Kimi.*Judge: Grok/);
+  const juez = r.body.mensajes.at(-1);
+  assert.match(juez.texto, /^⚖️/);
+  assert.match(juez.texto, /judge of an OfficeMatrix research sweep/, 'el juez recibe el prompt de juez');
+  assert.ok(r.body.mensajes[2].texto.startsWith('🔎'));
+});
+
+test('parseBarrida y sus prompts, sin servidor', () => {
+  const members = [
+    { tipo: 'cli', id: 'claude', sceneId: 'claude', nombre: 'Claude', mencion: 'claude' },
+    { tipo: 'cli', id: 'grok', sceneId: 'grok', nombre: 'Grok', mencion: 'grok' },
+    { tipo: 'cli', id: 'agy', sceneId: 'agy', nombre: 'Gemini', mencion: 'gemini' },
+    { tipo: 'bot', id: 'radar', sceneId: 'bot-radar', nombre: 'Radar', mencion: 'radar' },
+  ];
+  assert.strictEqual(parseBarrida('hola', members), null);
+  const todos = parseBarrida('barrida: vacunas y autismo', members);
+  assert.strictEqual(todos.tema, 'vacunas y autismo');
+  assert.strictEqual(todos.juez.id, 'claude', 'Claude juzga por defecto y no investiga');
+  assert.deepStrictEqual(todos.investigadores.map(m => m.id), ['grok', 'agy'], 'los bots no investigan');
+  const elegidos = parseBarrida('sweep @gemini @claude judge @grok Artemis III', members);
+  assert.strictEqual(elegidos.juez.id, 'grok');
+  assert.deepStrictEqual(elegidos.investigadores.map(m => m.id), ['agy', 'claude']);
+  assert.strictEqual(elegidos.tema, 'Artemis III');
+  assert.strictEqual(parseBarrida('barrida', members).tema, '');
+  assert.match(barridaPrompt({ nombre: 'Grok', tema: 'x', otros: 2 }), /one of 3 independent researchers[\s\S]*DOUBTFUL/);
+  const jp = juezPrompt({ nombre: 'Claude', tema: 'x', informes: [{ nombre: 'Grok', texto: 'A' }, { nombre: 'Gemini', fallo: 'Usage limit' }] });
+  assert.match(jp, /### Grok\nA/);
+  assert.match(jp, /### Gemini\n\(no report: Usage limit\)/);
+  assert.match(jp, /BLIND SPOTS/);
 });
 
 test('redact y destinatarios, sin servidor', () => {

@@ -540,7 +540,10 @@ function renderTopStatus() {
     const fail = !live[a.id] && failureOf(a.id);
     const cls = live[a.id] ? 'busy' : fail ? 'off' : a.installed && a.enabled ? 'ok' : 'off';
     const txt = live[a.id] ? t('ui.top.onTurn') : fail ? fail.label : !a.installed ? t('ui.top.notInstalled') : a.enabled ? t('ui.top.ready') : t('ui.top.disabled');
-    return `<span class="${cls}" data-hover="agent:${esc(a.id)}"><i></i>${esc(a.name.toUpperCase())} · ${txt}</span>`;
+    // La casilla es la misma que «participa» en Equipo: quita o pone a esta IA en la próxima misión (no en la que corre).
+    const member = teamDraft.find(mb => mb.id === a.id);
+    const cb = member ? `<input type="checkbox" class="tp-cb" data-team="${esc(a.id)}" ${member.on ? 'checked' : ''} ${a.installed && !current?.running ? '' : 'disabled'} title="${esc(a.installed ? t('ui.top.toggle') : t('ui.team.cliMissing'))}">` : '';
+    return `<label class="${cls}${member && !member.on ? ' out' : ''}" data-hover="agent:${esc(a.id)}">${cb}<i></i>${esc(a.name.toUpperCase())} · ${txt}</label>`;
   }).join('');
 }
 
@@ -1044,16 +1047,18 @@ const WIZARD_TEXT = {
 };
 async function loadOfficeBots(officeId) {
   const epoch = officeEpoch;
-  const [list, ajustes, wizard, chat] = await Promise.all([
+  const [list, ajustes, wizard, chat, tunnel] = await Promise.all([
     api(`/api/oficinas/${encodeURIComponent(officeId)}/bots`),
     api('/api/bots/ajustes'),
     api(`/api/oficinas/${encodeURIComponent(officeId)}/bots/asistente`),
     api(`/api/oficinas/${encodeURIComponent(officeId)}/chat`),
+    api('/api/bots/tunel').catch(() => null),
   ]);
   if (epoch !== officeEpoch || officeEditing !== officeId) return;
   if (document.activeElement !== $('botsUrl')) $('botsUrl').value = ajustes.publicUrl || '';
   const gate = wizard.comprobaciones.find(c => c.id === 'puerta');
   $('botGateBtn').hidden = !gate || gate.ok;
+  renderTunnel(tunnel, wizard.comprobaciones.find(c => c.id === 'tunel'));
   $('botChecks').innerHTML = wizard.comprobaciones.map(c => `<li class="wz-check${c.ok ? ' ok' : ''}"><i></i><span>${esc((WIZARD_TEXT[c.clave] || (v => c.clave))(c.vars || {}))}</span></li>`).join('');
   $('botInstruction').textContent = wizard.bloques.instruccion;
   $('botSample').textContent = wizard.bloques.json;
@@ -1180,6 +1185,35 @@ async function copyBotText(text) {
 }
 $('copyInstruction').addEventListener('click', () => copyBotText($('botInstruction').textContent));
 $('copyJson').addEventListener('click', () => copyBotText($('botSample').textContent));
+// El túnel rápido: dónde está cloudflared (o qué descargar y dónde ponerlo), el botón y el aviso de URL efímera.
+function renderTunnel(tn, check) {
+  if (!tn) return;
+  $('botTunnelBtn').hidden = !!check?.ok;
+  const info = $('botTunnelInfo');
+  info.hidden = false;
+  info.textContent = tn.cloudflared ? t('wizard.cf.found', { ruta: tn.cloudflared.ruta })
+    : t('wizard.cf.missing', { archivo: tn.descarga.archivo, pagina: tn.descarga.pagina, destino: tn.descarga.destino });
+  $('botCfPathWrap').hidden = !!tn.cloudflared && tn.cloudflared.origen !== 'ajuste';
+  if (document.activeElement !== $('botCfPath')) $('botCfPath').value = tn.rutaGuardada || '';
+  $('botTunnelEphemeral').hidden = !tn.efimera;
+  $('botTunnelEphemeral').textContent = tn.efimera ? t('wizard.cf.ephemeral') : '';
+}
+$('botTunnelBtn').addEventListener('click', async () => {
+  $('botTunnelBtn').disabled = true;
+  try {
+    const r = await api('/api/bots/tunel', { method: 'POST', body: '{}' });
+    toast(r.already ? t('wizard.tunnel.already') : t('wizard.tunnel.started', { url: r.url }));
+  } catch (err) { toast(err.message, true); }
+  $('botTunnelBtn').disabled = false;
+  if (officeEditing) await loadOfficeBots(officeEditing);
+});
+$('botCfPathBtn').addEventListener('click', async () => {
+  try {
+    await api('/api/bots/tunel', { method: 'PUT', body: JSON.stringify({ ruta: $('botCfPath').value }) });
+    toast(t('wizard.cf.pathSaved'));
+    if (officeEditing) await loadOfficeBots(officeEditing);
+  } catch (err) { toast(err.message, true); }
+});
 $('botGateBtn').addEventListener('click', async () => {
   try {
     const r = await api('/api/bots/puerta', { method: 'POST', body: '{}' });
@@ -2040,6 +2074,7 @@ function renderTeam() {
       <span class="mv"><button type="button" data-mv="-1" title="${t('ui.order.earlier')}">▲</button><button type="button" data-mv="1" title="${t('ui.order.later')}">▼</button></span>
     </li>`;
   }).join('');
+  renderTopStatus();
   renderWorkflows();
 }
 
@@ -2458,6 +2493,12 @@ $('cycleConfig').addEventListener('change', e => {
   if (li && e.target.type === 'checkbox') { teamDraft[li.dataset.i].on = e.target.checked; renderTeam(); return; }
   if (e.target.name === 'mode') renderWorkflows();
   updateCfgSummary();
+});
+$('topStatus').addEventListener('change', e => {
+  const member = e.target.dataset.team && teamDraft.find(mb => mb.id === e.target.dataset.team);
+  if (!member) return;
+  member.on = e.target.checked;
+  renderTeam();
 });
 $('teamList').addEventListener('input', e => {
   const li = e.target.closest('li');

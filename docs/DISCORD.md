@@ -3,6 +3,8 @@
 [![English](https://img.shields.io/badge/Language-English-blue.svg)](DISCORD.md)
 [![Español](https://img.shields.io/badge/Idioma-Español-orange.svg)](es/DISCORD.md)
 
+> 🧭 New here? The [visual guide](VISUAL-GUIDE.md) explains it with diagrams and ready-to-copy recipes. This page is the full reference.
+
 Every office can have **its own Discord bot**. You talk to your office's AIs from your phone, get alerts when a mission
 ends, and approve editorial proposals with a button. The bot connects **out** to Discord, so there is no tunnel and no
 open port. It needs no extra libraries either: OfficeMatrix uses the WebSocket built into Node.
@@ -29,7 +31,7 @@ Your Discord server
 - **Read-only.** A Discord message never edits files. Office chat turns are already read-only. From Discord, Claude also
   loses its tools to read files and fetch pages, so nobody in a channel can ask it to read a path on your disk. Other CLIs
   have no such switch, which is one more reason only authorized users can talk to the bot.
-- **Images.** An AI can only generate images with its own tool. OfficeMatrix uploads the ones that appear in that turn (in its temporary folder or in that conversation's folder: `~/.gemini/antigravity-cli/brain/<id>` for Antigravity and `~/.codex/generated_images/<id>` for Codex) and does not keep them in the chat.
+- **Images.** An AI can only generate images with its own tool. OfficeMatrix uploads the ones that appear in that turn (in its temporary folder or in that conversation's folder: `~/.gemini/antigravity-cli/brain/<id>` for Antigravity, `~/.codex/generated_images/<id>` for Codex and `~/.grok/sessions/<folder>/<id>/images` for Grok) and does not keep them in the chat.
 - **The token stays on your PC.** It lives in `discord.secreto.json` inside the office folder, outside git. The panel never
   shows it again, and the chat masks it if someone pastes it. **Never paste it in a chat.**
 - **Sensitive data.** If an office handles data that must only reach the AIs you chose, do not connect it to Discord, and
@@ -58,7 +60,8 @@ Repeat it for each office, with one Discord application each. For the Ship, sele
 | --- | --- |
 | `@bot @grok find trends about Artemis` | That AI of the office answers, signed with its name |
 | `@bot what do you think?` (no `@name`) | The office's **chat host** answers (⚙ → Chat host); if none is set, Claude or the first AI |
-| `@bot @gemini draw an astronaut on the moon` | If the AI generates an image, it reaches Discord with its reply (up to 4 images and 8 MB). Gemini (Antigravity) and Codex do it |
+| `@bot @gemini draw an astronaut on the moon` | If the AI generates an image, it reaches Discord with its reply (up to 4 images and 8 MB). Gemini (Antigravity), Codex and Grok do it |
+| `@bot sweep <topic>` | **Research sweep**: every AI researches separately and a judge merges and compares (see below) |
 | `@bot proposals` | The pending editorial proposals, as cards with buttons |
 | `@bot help` | A short reminder |
 | Ship: `@ship status` | Per office: missions running, pending proposals and its bot's state |
@@ -66,6 +69,46 @@ Repeat it for each office, with one Discord application each. For the Ship, sele
 | Ship: `@ship @claude summarize the week` | That AI of the Ship answers. Without an office or an `@name`, Claude (or the first AI) answers |
 
 Discord messages also land in the office chat in the panel, as «Discord · your name», so the conversation is one.
+
+## 📘 Manual: what to ask each AI
+
+All of them answer read-only: from Discord none of them touches files or reads your disk. Each turn has up to 3 minutes (5 in a sweep).
+
+| AI | Write | Searches the web | Makes images | Best for |
+| --- | --- | --- | --- | --- |
+| Claude | `@claude` | Yes (searches, but does not open pages from Discord) | No | Writing, summarizing, organizing ideas; default sweep judge |
+| Grok | `@grok` | Yes, including what is moving on X | Yes | What is trending now, images, angles for posts |
+| Gemini (Antigravity) | `@gemini` | Yes | Yes | Research with Google, images |
+| Codex | `@codex` | Only if your Codex has search turned on | Yes | Checking data and reasoning, images |
+| Kimi | `@kimi` | Yes (search only, no files) | No | A second, independent search |
+
+Tips:
+- **One AI per question** if you want speed; **several** (`@grok @gemini …`) for different opinions: they answer one after another and each sees what the previous one said.
+- **For a post:** `@grok write a post about <topic>`, then `@grok make an image for it`. Paste the source link if you have it.
+- **If an AI fails**, the message starts with ⚠️ and says why (usage limit, expired session…). Ask another one meanwhile.
+- **One answer at a time per office.** If you see «The office is answering another message», wait for it to finish.
+
+## 🔎 Research sweep
+
+Use it to make posts with checked facts, find misinformation and spot blind spots. Every AI researches **on its own and at the same time**, without seeing what the others find, and at the end a **judge** compares the reports.
+
+| You write | What happens |
+| --- | --- |
+| `@bot sweep <topic>` (or `barrida`) | Every installed and enabled AI researches; Claude judges |
+| `@bot sweep @grok @gemini @kimi <topic>` | Only those research |
+| `@bot sweep judge @gemini <topic>` | Gemini judges (the judge does not research, so it does not favor its own report) |
+| Ship: `@ship viralhunt: sweep <topic>` | The sweep runs in that office |
+
+Each researcher delivers (🔎): **findings** with source and date, **doubtful** claims (circulating but false, exaggerated or unverifiable), **gaps** and its **confidence**.
+
+The judge (⚖️) returns:
+- **Summary** of what is solid.
+- **Agree:** what two or more found.
+- **Contradictions and misinformation:** who said what and which version is better supported. A claim only one makes, with no source, is marked unverified.
+- **Blind spots:** what nobody looked at.
+- **Post ideas:** 2 or 3 hooks, only from well-supported facts.
+
+It takes a few minutes. Before publishing, open the sources of what you are going to claim: a sweep reduces mistakes, it does not remove them.
 
 ## 🔔 Alerts
 

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 312" role="img" aria-labelledby="t d">
+  <title id="t">What OfficeMatrix can do</title>
+  <desc id="d">Six areas: offices, missions, the judge, editorial with ViralHunt, Discord and external agents.</desc>
+  <rect width="760" height="312" rx="18" fill="#12141c"/>
+  <g font-family="Segoe UI, Helvetica, Arial, sans-serif">
+<text x="28" y="34" fill="#c8c4d4" font-size="12" font-weight="400" text-anchor="start" letter-spacing="0.08em">EVERYTHING IN ONE REPOSITORY</text><g opacity="0"><animate attributeName="opacity" from="0" to="1" begin="0s" dur="0.6s" fill="freeze"/>
+      <rect x="28" y="54" width="224" height="108" rx="14" fill="#1a1d29" stroke="#7c5cff" stroke-width="1.8"/>
+      <rect x="28" y="54" width="6" height="108" rx="3" fill="#7c5cff"/>
+      <text x="50" y="90" fill="#eeeaf8" font-size="22" font-weight="400" text-anchor="start">🏢</text><text x="86" y="88" fill="#eeeaf8" font-size="15" font-weight="700" text-anchor="start">Offices</text>
+      <text x="50" y="118" fill="#a9a4b8" font-size="12" font-weight="400" text-anchor="start">Separate teams, memory</text><text x="50" y="135" fill="#a9a4b8" font-size="12" font-weight="400" text-anchor="start">and keys per project</text></g><g opacity="0"><animate attributeName="opacity" from="0" to="1" begin="0.25s" dur="0.6s" fill="freeze"/>
+      <rect x="268" y="54" width="224" height="108" rx="14" fill="#1a1d29" stroke="#4f8df5" stroke-width="1.8"/>
+      <rect x="268" y="54" width="6" height="108" rx="3" fill="#4f8df5"/>
+      <text x="290" y="90" fill="#eeeaf8" font-size="22" font-weight="400" text-anchor="start">🔁</text><text x="326" y="88" fill="#eeeaf8" font-size="15" font-weight="700" text-anchor="start">Missions</text>
+      <text x="290" y="118" fill="#a9a4b8" font-size="12" font-weight="400" text-anchor="start">Relay, Delphi or Council:</text><text x="290" y="135" fill="#a9a4b8" font-size="12" font-weight="400" text-anchor="start">AIs build and review</text></g><g opacity="0"><animate attributeName="opacity" from="0" to="1" begin="0.5s" dur="0.6s" fill="freeze"/>
+      <rect x="508" y="54" width="224" height="108" rx="14" fill="#1a1d29" stroke="#e0a84f" stroke-width="1.8"/>
+      <rect x="508" y="54" width="6" height="108" rx="3" fill="#e0a84f"/>
+      <text x="530" y="90" fill="#eeeaf8" font-size="22" font-weight="400" text-anchor="start">⚖️</text><text x="566" y="88" fill="#eeeaf8" font-size="15" font-weight="700" text-anchor="start">The judge</text>
+      <text x="530" y="118" fill="#a9a4b8" font-size="12" font-weight="400" text-anchor="start">One AI gives the final</text><text x="530" y="135" fill="#a9a4b8" font-size="12" font-weight="400" text-anchor="start">verdict and closes it</text></g><g opacity="0"><animate attributeName="opacity" from="0" to="1" begin="0.75s" dur="0.6s" fill="freeze"/>
+      <rect x="28" y="178" width="224" height="108" rx="14" fill="#1a1d29" stroke="#d0704f" stroke-width="1.8"/>
+      <rect x="28" y="178" width="6" height="108" rx="3" fill="#d0704f"/>
+      <text x="50" y="214" fill="#eeeaf8" font-size="22" font-weight="400" text-anchor="start">📰</text><text x="86" y="212" fill="#eeeaf8" font-size="15" font-weight="700" text-anchor="start">Editorial</text>
+      <text x="50" y="242" fill="#a9a4b8" font-size="12" font-weight="400" text-anchor="start">Viral topics to drafts,</text><text x="50" y="259" fill="#a9a4b8" font-size="12" font-weight="400" text-anchor="start">sent to ViralHunt</text></g><g opacity="0"><animate attributeName="opacity" from="0" to="1" begin="1s" dur="0.6s" fill="freeze"/>
+      <rect x="268" y="178" width="224" height="108" rx="14" fill="#1a1d29" stroke="#5865f2" stroke-width="1.8"/>
+      <rect x="268" y="178" width="6" height="108" rx="3" fill="#5865f2"/>
+      <text x="290" y="214" fill="#eeeaf8" font-size="22" font-weight="400" text-anchor="start">💬</text><text x="326" y="212" fill="#eeeaf8" font-size="15" font-weight="700" text-anchor="start">Discord</text>
+      <text x="290" y="242" fill="#a9a4b8" font-size="12" font-weight="400" text-anchor="start">Talk to every AI from</text><text x="290" y="259" fill="#a9a4b8" font-size="12" font-weight="400" text-anchor="start">your phone, get alerts</text></g><g opacity="0"><animate attributeName="opacity" from="0" to="1" begin="1.25s" dur="0.6s" fill="freeze"/>
+      <rect x="508" y="178" width="224" height="108" rx="14" fill="#1a1d29" stroke="#3dba7a" stroke-width="1.8"/>
+      <rect x="508" y="178" width="6" height="108" rx="3" fill="#3dba7a"/>
+      <text x="530" y="214" fill="#eeeaf8" font-size="22" font-weight="400" text-anchor="start">🔎</text><text x="566" y="212" fill="#eeeaf8" font-size="15" font-weight="700" text-anchor="start">Research sweep</text>
+      <text x="530" y="242" fill="#a9a4b8" font-size="12" font-weight="400" text-anchor="start">AIs research apart, a</text><text x="530" y="259" fill="#a9a4b8" font-size="12" font-weight="400" text-anchor="start">judge spots misinformation</text></g>
+  </g>
+</svg>

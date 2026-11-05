@@ -3,6 +3,8 @@
 //   GET  /bots/health                      comprobación del asistente (no reenvía nada; no lleva secretos)
 //   POST /bots/r/<token>                   respuesta de un turno (token de un solo uso)        → /api/bots/respuesta/<token>
 //   POST /bots/o/<oficina>/<llave_agente>  un bot inicia algo en su oficina (llave om_<oficina>_…) → /api/bots/mensaje
+//   POST /bots/vh/<oficina>                ViralHunt llama a la oficina como agente (firma Standard Webhooks o Bearer con la
+//                                          llave acordada en el panel; la verifica el servidor)       → /api/bots/vh
 // Todo lo demás: 404. Cuerpo de 1 MiB como máximo, solo JSON o texto, y un límite de peticiones por IP.
 // Uso: node puerta-bots.js   (con la app abierta: node server.js). Variables: BOTS_PORT (4323), PORT (4321).
 const http = require('http');
@@ -33,6 +35,11 @@ function route(method, url) {
   if (parts[1] === 'o' && parts.length === 4 && OFFICE_RE.test(parts[2]) && KEY_RE.test(decodeURIComponent(parts[3]))) {
     return { path: `/api/bots/mensaje?oficina=${parts[2]}`, auth: `Bearer ${decodeURIComponent(parts[3])}` };
   }
+  // ViralHunt como llamador: viajan solo las cabeceras de la firma, y la respuesta del servidor vuelve entera (un pong inline
+  // cuenta como pong en ViralHunt; el servidor no pone nada del panel en esa respuesta).
+  if (parts[1] === 'vh' && parts.length === 3 && OFFICE_RE.test(parts[2])) {
+    return { path: `/api/bots/vh?oficina=${parts[2]}`, forward: ['webhook-id', 'webhook-timestamp', 'webhook-signature', 'authorization'], passthrough: true };
+  }
   return null;
 }
 
@@ -62,13 +69,15 @@ function createGate({ target = TARGET } = {}) {
       const body = Buffer.concat(chunks);
       // Solo se reenvía el tipo y el cuerpo: ninguna cabecera del exterior (cookies, Origin…) llega al servidor.
       const headers = { 'content-type': type.split(';')[0], 'content-length': body.length, ...(r.auth ? { authorization: r.auth } : {}) };
+      for (const h of r.forward || []) if (req.headers[h]) headers[h] = String(req.headers[h]).slice(0, 512);
       const up = http.request({ host: '127.0.0.1', port: target, method: 'POST', path: r.path, headers }, ur => {
         const out = [];
         ur.on('data', c => out.push(c));
         ur.on('end', () => {
           let data = {};
           try { data = JSON.parse(Buffer.concat(out).toString('utf8')); } catch {}
-          // Al exterior solo vuelve el estado y un mensaje corto (nada del panel).
+          // Al exterior solo vuelve el estado y un mensaje corto (nada del panel); la ruta de ViralHunt devuelve lo que dijo el servidor.
+          if (r.passthrough) return reply(res, ur.statusCode, data);
           reply(res, ur.statusCode, ur.statusCode < 300 ? { ok: true, ...(data.id ? { id: data.id } : {}) } : { error: String(data.error || 'Error').slice(0, 200) });
         });
       });

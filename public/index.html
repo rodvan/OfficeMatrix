@@ -282,15 +282,20 @@
         <div class="label"><span translate="no">Grok Bots</span> <small class="muted" data-i18n="ui.of.botsHint">— your Grok bots as employees of this office: they get their turn through their routine's webhook and reply to OfficeMatrix (docs/GROK-BOTS.md)</small></div>
         <div class="label"><span data-i18n="wizard.checks">Connection checklist</span></div>
         <ul id="botChecks" class="bot-checks"></ul>
-        <p><button type="button" id="botGateBtn" class="btn ghost small" hidden data-i18n="wizard.startGate">START THE GATE</button></p>
+        <p><button type="button" id="botGateBtn" class="btn ghost small" hidden data-i18n="wizard.startGate">START THE GATE</button>
+          <button type="button" id="botTunnelBtn" class="btn ghost small" hidden data-i18n="wizard.startTunnel">START THE TUNNEL</button></p>
+        <p id="botTunnelInfo" class="muted" hidden></p>
+        <label id="botCfPathWrap" class="bots-url" hidden><span data-i18n="wizard.cf.pathLabel">cloudflared path</span>
+          <span class="office-key-new"><input id="botCfPath" class="field" placeholder="C:\Users\you\cloudflared\cloudflared.exe" data-i18n-placeholder="wizard.cf.pathPh" autocomplete="off"><button type="button" id="botCfPathBtn" class="btn ghost small" data-i18n="ui.save">SAVE</button></span></label>
+        <p id="botTunnelEphemeral" class="muted" hidden></p>
         <label class="bots-url"><span data-i18n="ui.of.tunnel">Public tunnel URL</span> <small class="muted" data-i18n="ui.of.tunnelHint">(Cloudflare → http://localhost:4323, the bots' door; shared by every office)</small>
           <span class="office-key-new"><input id="botsUrl" class="field" placeholder="https://bots.yourdomain.com" data-i18n-placeholder="ui.of.tunnelPh" autocomplete="off"><button type="button" id="botsUrlBtn" class="btn ghost small" data-i18n="ui.save">SAVE</button></span></label>
         <details class="bot-guide">
           <summary data-i18n="wizard.cf.summary">Cloudflare tunnel, for beginners</summary>
           <ol>
-            <li data-i18n="wizard.cf.install">Install cloudflared yourself from Cloudflare's site. OfficeMatrix does not install software and does not need administrator rights.</li>
-            <li data-i18n="wizard.cf.quick">Quick tunnel (try it): in a terminal, run cloudflared tunnel --url http://localhost:4323. Copy the https address into Public tunnel URL.</li>
-            <li data-i18n="wizard.cf.named">Named tunnel (keep it): in Cloudflare Zero Trust, create a tunnel and a public hostname. The service is only http://localhost:4323.</li>
+            <li data-i18n="wizard.cf.install">Install cloudflared yourself (github.com/cloudflare/cloudflared/releases). OfficeMatrix never downloads it and does not need administrator rights. If it is not on the PATH, paste its path above.</li>
+            <li data-i18n="wizard.cf.quick">Quick tunnel (try it): press Start the tunnel. It runs cloudflared tunnel --url http://localhost:4323 and saves the https address as the public URL. The address changes on every restart.</li>
+            <li data-i18n="wizard.cf.named">Named tunnel (keep it): cloudflared tunnel login, cloudflared tunnel create, cloudflared tunnel route dns, and a config.yml whose service is only http://localhost:4323. Then paste your fixed https address here.</li>
             <li data-i18n="wizard.cf.service">The service must be exactly http://localhost:4323 (the bots' gate). The panel stays on your computer.</li>
             <li data-i18n="wizard.cf.never">Never point the tunnel at port 4321 or at the panel. The gate forwards only bot replies.</li>
           </ol>
